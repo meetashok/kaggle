@@ -1,9 +1,15 @@
+allen_ai
+bikesharing
+bnp_paribas
+titanic
+
 tweet-sentiment-extraction/data
 tweet-sentiment-extraction/data/*.csv
 
 tweet-sentiment-extraction/__pycache__
 tweet-sentiment-extraction/__pycache__/*
 
+tweet-sentiment-extraction/models*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
