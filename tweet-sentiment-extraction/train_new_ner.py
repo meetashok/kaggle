@@ -35,6 +35,8 @@ import spacy
 from spacy.util import minibatch, compounding
 import utils
 
+# spacy.prefer_gpu()
+
 
 LABEL = "SELECTEDTEXT"
 
@@ -184,11 +186,11 @@ if __name__ == "__main__":
     train, test, _ = utils.read_data(datadir)
     positive, negative = training_data(train)
 
-    # print("Training positive model...")
-    # train_model(positive, "positive", output_dir="models/positive", n_iter=10)
+    print("Training positive model...")
+    train_model(positive, "positive", output_dir="models-new/positive", n_iter=10)
 
-    # print("Training negative model...")
-    # train_model(negative, "negative", output_dir="models/negative", n_iter=3)
+    print("Training negative model...")
+    train_model(negative, "negative", output_dir="models-new/negative", n_iter=3)
 
     test_model(train, "models/positive")
     
