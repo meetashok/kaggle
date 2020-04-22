@@ -1,3 +1,10 @@
+tweet-sentiment-extraction/data
+tweet-sentiment-extraction/data/*.csv
+
+tweet-sentiment-extraction/__pycache__
+tweet-sentiment-extraction/__pycache__/*
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
