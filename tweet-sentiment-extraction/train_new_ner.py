@@ -44,10 +44,9 @@ LABEL = "SELECTEDTEXT"
 # model might learn the new type, but "forget" what it previously knew.
 # https://explosion.ai/blog/pseudo-rehearsal-catastrophic-forgetting
 
-def train_data(datadir):
-    train, _, _ = utils.read_data(datadir)
+def training_data(dataframe):
 
-    data = (train
+    data = (dataframe
     .dropna()
     .assign(
         text=lambda x: x.apply(lambda x: x.text.lower(), axis=1),
@@ -81,13 +80,40 @@ def train_data(datadir):
 
     return positive, negative
 
-@plac.annotations(
-    model=("Model name. Defaults to blank 'en' model.", "option", "m", str),
-    new_model_name=("New model name for model meta.", "option", "nm", str),
-    output_dir=("Optional output directory", "option", "o", Path),
-    n_iter=("Number of training iterations", "option", "n", int),
-)
-def train(traindata, new_model_name, model=None, output_dir=None, n_iter=30):
+# @plac.annotations(
+#     model=("Model name. Defaults to blank 'en' model.", "option", "m", str),
+#     new_model_name=("New model name for model meta.", "option", "nm", str),
+#     output_dir=("Optional output directory", "option", "o", Path),
+#     n_iter=("Number of training iterations", "option", "n", int),
+# )
+
+def test_model(data, model):
+    nlp = spacy.load(model) 
+
+    data = (data
+    .dropna()
+    .assign(
+        ents=lambda x: x.apply(lambda x: nlp(x.text).ents, axis=1),
+        pred=lambda x: x.apply(lambda x: "" if len(x.ents) == 0 else x.ents[0].text, axis=1)
+        )
+    )
+
+    all_jaccard = []
+
+    for i, row in data.iterrows():
+        if row.sentiment=="positive":
+            print("------")
+            print(row.selected_text)
+            print(row.pred)
+            print("------")
+
+            jaccard = utils.jaccard_similarity(row.selected_text, row.pred)
+            all_jaccard.append(jaccard)
+
+    print(sum(all_jaccard) / len(all_jaccard))
+
+
+def train_model(traindata, new_model_name, model=None, output_dir=None, n_iter=30):
     """Set up the pipeline and entity recognizer, and train the new entity."""
     random.seed(0)
     if model is not None:
@@ -155,10 +181,14 @@ def train(traindata, new_model_name, model=None, output_dir=None, n_iter=30):
 
 if __name__ == "__main__":
     datadir = "data"
-    positive, negative = train_data(datadir)
+    train, test, _ = utils.read_data(datadir)
+    positive, negative = training_data(train)
 
-    print("Training positive model...")
-    train(positive, "positive", output_dir="models/positive", n_iter=3)
+    # print("Training positive model...")
+    # train_model(positive, "positive", output_dir="models/positive", n_iter=10)
 
-    print("Training negative model...")
-    train(negative, "negative", output_dir="models/negative", n_iter=3)
+    # print("Training negative model...")
+    # train_model(negative, "negative", output_dir="models/negative", n_iter=3)
+
+    test_model(train, "models/positive")
+    
