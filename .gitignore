@@ -9,7 +9,11 @@ tweet-sentiment-extraction/data/*.csv
 tweet-sentiment-extraction/__pycache__
 tweet-sentiment-extraction/__pycache__/*
 
+tweet-sentiment-extraction/submissions
 tweet-sentiment-extraction/models*
+tweet-sentiment-extraction/.DS_Store
+
+*.DS_Store
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

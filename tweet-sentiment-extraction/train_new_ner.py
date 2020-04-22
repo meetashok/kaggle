@@ -34,6 +34,13 @@ from pathlib import Path
 import spacy
 from spacy.util import minibatch, compounding
 import utils
+import datetime
+import os
+import re
+import string
+import pandas as pd
+from tqdm import tqdm
+import argparse
 
 # spacy.prefer_gpu()
 
@@ -46,18 +53,18 @@ LABEL = "SELECTEDTEXT"
 # model might learn the new type, but "forget" what it previously knew.
 # https://explosion.ai/blog/pseudo-rehearsal-catastrophic-forgetting
 
-def training_data(dataframe):
 
-    data = (dataframe
-    .dropna()
-    .assign(
-        text=lambda x: x.apply(lambda x: x.text.lower(), axis=1),
-        selected_text=lambda x: x.apply(lambda x: x.selected_text.lower(), axis=1),
-    )
-    .assign(
-        start=lambda x: x.apply(lambda x: x.text.find(x.selected_text), axis=1),
-        end=lambda x: x.apply(lambda x: x.start + len(x.selected_text), axis=1),
-    )
+def training_data(dataframe):
+    data = (
+        dataframe.dropna()
+        .assign(
+            text=lambda x: x.apply(lambda x: x.text.lower(), axis=1),
+            selected_text=lambda x: x.apply(lambda x: x.selected_text.lower(), axis=1),
+        )
+        .assign(
+            start=lambda x: x.apply(lambda x: x.text.find(x.selected_text), axis=1),
+            end=lambda x: x.apply(lambda x: x.start + len(x.selected_text), axis=1),
+        )
     )
 
     positive = []
@@ -65,10 +72,7 @@ def training_data(dataframe):
 
     for i, row in data.iterrows():
         if row.end > row.start:
-            train_row = (
-                row.text, 
-                {"entities": [(row.start, row.end, LABEL)]}
-            )
+            train_row = (row.text, {"entities": [(row.start, row.end, LABEL)]})
 
             if row.sentiment == "positive":
                 positive.append(train_row)
@@ -76,11 +80,12 @@ def training_data(dataframe):
                 negative.append(train_row)
             else:
                 pass
-    
+
     print(f"Positive data size: {len(positive):,}")
     print(f"Negative data size: {len(negative):,}")
 
     return positive, negative
+
 
 # @plac.annotations(
 #     model=("Model name. Defaults to blank 'en' model.", "option", "m", str),
@@ -89,31 +94,69 @@ def training_data(dataframe):
 #     n_iter=("Number of training iterations", "option", "n", int),
 # )
 
-def test_model(data, model):
-    nlp = spacy.load(model) 
+def run_model(data, positivemodel, negativemodel, outputpath=None):
+    print("Loading models...")
+    positive_nlp = spacy.load(positivemodel)
+    negative_nlp = spacy.load(negativemodel)
 
-    data = (data
-    .dropna()
-    .assign(
-        ents=lambda x: x.apply(lambda x: nlp(x.text).ents, axis=1),
-        pred=lambda x: x.apply(lambda x: "" if len(x.ents) == 0 else x.ents[0].text, axis=1)
-        )
-    )
+    data = data.dropna()
 
-    all_jaccard = []
+    textIDs, selected_texts = [], []
+    jaccards = {
+        "positive": [],
+        "negative": [],
+        "neutral": []
+    }
 
-    for i, row in data.iterrows():
-        if row.sentiment=="positive":
-            print("------")
-            print(row.selected_text)
-            print(row.pred)
-            print("------")
+    input_train = "selected_text" in data.columns
 
-            jaccard = utils.jaccard_similarity(row.selected_text, row.pred)
-            all_jaccard.append(jaccard)
+    print("Iterating data...")
+    for _, row in tqdm(data.iterrows()):
+        if row.sentiment == "positive":
+            if len(row.text.split()) <= 2:
+                selected_text = row.text
+            else: 
+                ents = positive_nlp(row.text).ents
+                selected_text = ents[0].text if len(ents) > 0 else row.text
+        elif row.sentiment == "negative":
+            if len(row.text.split()) <= 2:
+                selected_text = row.text
+            else:
+                ents = negative_nlp(row.text).ents
+                selected_text = ents[0].text if len(ents) > 0 else row.text
+        else:
+            selected_text = row.text
 
-    print(sum(all_jaccard) / len(all_jaccard))
+        textIDs += [row.textID]
+        selected_texts += [selected_text]
 
+        if input_train:
+            jaccard = utils.jaccard_similarity(row.text, selected_text)
+            jaccards[row.sentiment] += [jaccard]
+
+    output_df = pd.DataFrame({"textID": textIDs, "selected_text": selected_texts})
+    
+    if not input_train:
+        if not outputpath:
+            suffix = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+            outputpath = os.path.join("submissions", "submission_" + suffix + ".csv")
+        
+        print("Saving submission...")
+        output_df.to_csv(outputpath, index=False)
+
+    if input_train:
+        nums, dens = [], []
+        for key in ("positive", "negative", "neutral"):
+            num = sum(jaccards[key])
+            den = len(jaccards[key])
+            jaccard_score = num / den
+            print(f"Jaccard score for {key}: {num / den:.3f}")
+
+            nums.append(num)
+            dens.append(den)
+
+        print(f"Jaccard score for overall: {sum(nums) / sum(dens):.3f}")
+        
 
 def train_model(traindata, new_model_name, model=None, output_dir=None, n_iter=30):
     """Set up the pipeline and entity recognizer, and train the new entity."""
@@ -182,15 +225,45 @@ def train_model(traindata, new_model_name, model=None, output_dir=None, n_iter=3
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Hello')
+    parser.add_argument("-t", "--task", dest="task",
+                        help="Specify the task to be performed: Training or Running a model",
+                        default="run", type=str)
+
+    parser.add_argument("-i", "--iterations", dest="n_iter",
+                        help="Number of iterations for training",
+                        default=10, type=int)
+
+    parser.add_argument("-d", "--data-type", dest="data",
+                        help="Type of data to be used",
+                        default="train")
+
+    parser.add_argument("-m", "--modelsdir", dest="modelsdir",
+                        help="Location of models directory")
+
+    args = parser.parse_args()
+
     datadir = "data"
     train, test, _ = utils.read_data(datadir)
-    positive, negative = training_data(train)
 
-    print("Training positive model...")
-    train_model(positive, "positive", output_dir="models-new/positive", n_iter=10)
+    if args.task == 'train':
+        n_iter = args.n_iter
+        positive, negative = training_data(train)
 
-    print("Training negative model...")
-    train_model(negative, "negative", output_dir="models-new/negative", n_iter=3)
+        print("Training positive model...")
+        train_model(positive, "positive", output_dir="models/positive", n_iter=n_iter)
 
-    test_model(train, "models/positive")
+        print("Training negative model...")
+        train_model(negative, "negative", output_dir="models/negative", n_iter=n_iter)
+
+    if args.task == "run":
+        datatypes = {"train": train, "test": test}
+        data = datatypes[args.data]
+        modelsdir = args.modelsdir
+
+        run_model(test, 
+        os.path.join(modelsdir, "positive"),
+        os.path.join(modelsdir, "negative")
+        )
     
+
