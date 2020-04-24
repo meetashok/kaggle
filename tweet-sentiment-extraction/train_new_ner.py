@@ -265,5 +265,3 @@ if __name__ == "__main__":
         os.path.join(modelsdir, "positive"),
         os.path.join(modelsdir, "negative")
         )
-    
-
