@@ -23,7 +23,7 @@ from dataset import Dataset
 # other entity types that spaCy correctly recognized before. Otherwise, your
 # model might learn the new type, but "forget" what it previously knew.
 # https://explosion.ai/blog/pseudo-rehearsal-catastrophic-forgetting
-        
+
 
 def train_model(traindata, new_model_name, model=None, modelsdir=None, n_iter=30):
     """Set up the pipeline and entity recognizer, and train the new entity."""
@@ -45,7 +45,7 @@ def train_model(traindata, new_model_name, model=None, modelsdir=None, n_iter=30
 
     ner.add_label(Config.LABEL)  # add new entity label to entity recognizer
     # Adding extraneous labels shouldn't mess anything up
-    ner.add_label("VEGETABLE")
+    # ner.add_label("VEGETABLE")
     if model is None:
         optimizer = nlp.begin_training()
     else:
@@ -66,12 +66,12 @@ def train_model(traindata, new_model_name, model=None, modelsdir=None, n_iter=30
                 nlp.update(texts, annotations, sgd=optimizer, drop=0.35, losses=losses)
             print("Losses", losses)
 
-    # test the trained model
-    test_text = "i`d have responded, if i were going"
-    doc = nlp(test_text)
-    print("Entities in '%s'" % test_text)
-    for ent in doc.ents:
-        print(ent.label_, ent.text)
+    # # test the trained model
+    # test_text = "i`d have responded, if i were going"
+    # doc = nlp(test_text)
+    # print("Entities in '%s'" % test_text)
+    # for ent in doc.ents:
+    #     print(ent.label_, ent.text)
 
     # save model to output directory
     if modelsdir is not None:
@@ -81,25 +81,31 @@ def train_model(traindata, new_model_name, model=None, modelsdir=None, n_iter=30
         nlp.to_disk(modelsdir)
         print("Saved model to", modelsdir)
 
-        # test the saved model
-        print("Loading from", modelsdir)
-        nlp2 = spacy.load(modelsdir)
-        # Check the classes have loaded back consistently
-        assert nlp2.get_pipe("ner").move_names == move_names
-        doc2 = nlp2(test_text)
-        for ent in doc2.ents:
-            print(ent.label_, ent.text)
+        # # test the saved model
+        # print("Loading from", modelsdir)
+        # nlp2 = spacy.load(modelsdir)
+        # # Check the classes have loaded back consistently
+        # assert nlp2.get_pipe("ner").move_names == move_names
+        # doc2 = nlp2(test_text)
+        # for ent in doc2.ents:
+        #     print(ent.label_, ent.text)
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Hello')
+    parser = argparse.ArgumentParser(description="Hello")
 
-    parser.add_argument("-i", "--iterations", dest="n_iter",
-                        help="Number of iterations for training",
-                        default=10, type=int)
+    parser.add_argument(
+        "-i",
+        "--iterations",
+        dest="n_iter",
+        help="Number of iterations for training",
+        default=10,
+        type=int,
+    )
 
-    parser.add_argument("-m", "--modelsdir", dest="modelsdir",
-                        help="Location of models directory")
+    parser.add_argument(
+        "-m", "--modelsdir", dest="modelsdir", help="Location of models directory"
+    )
 
     args = parser.parse_args()
     n_iter = args.n_iter
@@ -110,7 +116,18 @@ if __name__ == "__main__":
     pos_data, neg_data = dataset.build_training_data()
 
     print("Training positive model...")
-    train_model(pos_data, "positive", modelsdir=os.path.join(modelsdir, "positive"), n_iter=n_iter)
+    train_model(
+        pos_data,
+        "positive",
+        modelsdir=os.path.join(modelsdir, "positive"),
+        n_iter=n_iter,
+    )
 
     print("Training negative model...")
-    train_model(neg_data, "negative", modelsdir=os.path.join(modelsdir, "negative"), n_iter=n_iter)
+    train_model(
+        neg_data,
+        "negative",
+        modelsdir=os.path.join(modelsdir, "negative"),
+        n_iter=n_iter,
+    )
+
