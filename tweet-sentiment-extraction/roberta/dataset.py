@@ -24,7 +24,7 @@ def process_tweet(tweet, selected_text, sentiment, tokenizer, max_len):
     encoded_tweet = tokenizer.encode(tweet)
         
     # filling the ids and attention_mask
-    ids_valid = [0] + [sentiment_ids[sentiment]] + [2, 2] + encoded_tweet.ids + [2]
+    ids_valid = [0] + encoded_tweet.ids + [2, 2] + [sentiment_ids[sentiment]] + [2]
     len_valid = len(ids_valid)
     attention_mask_valid = [1] * len_valid
 
