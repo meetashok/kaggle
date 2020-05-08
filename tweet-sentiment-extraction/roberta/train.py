@@ -21,7 +21,7 @@ def criterion(start_logits, end_logits, start, end):
     start_loss = loss_fn(start_logits, start)
     end_loss = loss_fn(end_logits, end)
 
-    return (start_loss + end_loss) / 2
+    return start_loss + end_loss
 
 def batch_jaccard_similarity(ids, token_start, token_end, tweet, selected_text, sentiment, tokenizer, th=3):
     similarities = 0
@@ -76,18 +76,23 @@ def train_model(model, dataloaders, outdir, criterion, optimizer, scheduler, num
         for i, data in enumerate(dataloaders["train"]):
             model.train()
             
-            ids, attention_mask, token_type_ids = (
-                                            data["ids"], 
-                                            data["attention_mask"], 
-                                            data["token_type_ids"]
-                                            )
-
-            token_start, token_end, tweet, selected_text, sentiment = (
-                                    data["token_start"], 
-                                    data["token_end"], 
-                                    data["tweet"],
-                                    data["selected_text"],
-                                    data["sentiment"])
+            (ids, 
+            attention_mask, 
+            token_type_ids, 
+            token_start, 
+            token_end, 
+            tweet, 
+            selected_text, 
+            sentiment) = (
+                          data["ids"], 
+                          data["attention_mask"], 
+                          data["token_type_ids"]
+                          data["token_start"], 
+                          data["token_end"], 
+                          data["tweet"],
+                          data["selected_text"],
+                          data["sentiment"]
+                          )
             
             ids = ids.to(device)
             attention_mask = attention_mask.to(device)
@@ -104,8 +109,16 @@ def train_model(model, dataloaders, outdir, criterion, optimizer, scheduler, num
                                             attention_mask=attention_mask,
                                             token_type_ids=token_type_ids)
 
-                token_start_pred = torch.argmax(start_logits, dim=-1).cpu().detach().numpy()
-                token_end_pred = torch.argmax(end_logits, dim=-1).cpu().detach().numpy()
+                token_start_pred = (torch.argmax(start_logits, dim=-1)
+                                .cpu()
+                                .detach()
+                                .numpy())
+
+                token_end_pred = (torch.argmax(end_logits, dim=-1)
+                                .cpu()
+                                .detach()
+                                .numpy())
+
                 ids = ids.cpu().detach().numpy()
 
                 batch_jaccard = batch_jaccard_similarity(ids, 
@@ -192,7 +205,12 @@ if __name__ == "__main__":
         "train": DataLoader(train_dataset, batch_size=32)
     }
 
-    optimizer = optim.Adam(model.parameters(), lr=0.001, betas=(0.9, 0.999), eps=1e-08, weight_decay=1e-5)
+    optimizer = optim.Adam(model.parameters(), 
+            lr=Config.lr, 
+            betas=(0.9, 0.999), 
+            eps=1e-08, 
+            weight_decay=1e-5)
+
     scheduler = lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.1)
 
     train_model(model, dataloaders, Config.modelsdir, criterion, optimizer, scheduler, num_epochs=10)
