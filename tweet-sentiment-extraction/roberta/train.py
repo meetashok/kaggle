@@ -13,7 +13,7 @@ if __name__ == "__main__":
     model = TweetModel(Config.roberta_config)
     model = model.to(Config.device)  
 
-    train, test, _ = read_data(frac=0.001)
+    train, test, _ = read_data(frac=1)
     tokenizer = initialize_tokenizer(Config.roberta_vocab, Config.roberta_merges)
     train_dataset = TweetData(train, tokenizer, Config.max_len)
 
@@ -29,7 +29,7 @@ if __name__ == "__main__":
 
     writer = tensorboard.SummaryWriter(log_dir=f"../runs/roberta_{Config.suffix}")
 
-    optimizer = AdamW(model.linear.parameters())
+    optimizer = AdamW(model.parameters())
     scheduler = lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.1)
 
     train_model(model, tokenizer, dataloaders, Config.modelsdir, loss_criterion, optimizer, scheduler, writer, num_epochs=Config.num_epochs)

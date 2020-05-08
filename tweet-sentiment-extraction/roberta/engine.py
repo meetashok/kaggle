@@ -134,7 +134,7 @@ def train_model(model, tokenizer, dataloaders, outdir, loss_criterion, optimizer
                                             tokenizer)
 
                 loss = loss_criterion(start_logits, end_logits, token_start, token_end)
-                print(f"Loss = {loss.item():10.4f}, Jaccard = {batch_jaccard:10.4f}")
+                # print(f"Loss = {loss.item():10.4f}, Jaccard = {batch_jaccard:10.4f}")
 
                 loss.backward()
                 optimizer.step()
