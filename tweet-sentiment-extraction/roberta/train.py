@@ -13,7 +13,7 @@ if __name__ == "__main__":
     model = TweetModel(Config.roberta_config)
     model = model.to(Config.device)  
 
-    train, test, _ = read_data(frac=0.01)
+    train, test, _ = read_data(frac=0.001)
     tokenizer = initialize_tokenizer(Config.roberta_vocab, Config.roberta_merges)
     train_dataset = TweetData(train, tokenizer, Config.max_len)
 

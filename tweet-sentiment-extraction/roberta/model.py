@@ -4,6 +4,7 @@ import torch.nn as nn
 import os
 from config import Config
 import torch
+import torch.nn as nn
 
 def initialize_tokenizer(vocab_file, merges_file):
     print("Tokenizer getting loaded...")
@@ -26,6 +27,8 @@ class TweetModel(transformers.BertModel):
         self.roberta = transformers.RobertaModel.from_pretrained("roberta-base", config=config)
         self.dropout = nn.Dropout(0.1)
         self.linear = nn.Linear(config.hidden_size*2, 2)
+        nn.init.normal_(self.linear.weight, std=0.02)
+
 
     def forward(self, ids, attention_mask, token_type_ids):
         _, _, out = self.roberta(

@@ -16,6 +16,7 @@ import torch.nn as nn
 from model import initialize_tokenizer
 from transformers import AdamW
 from torch.utils import tensorboard
+import numpy as np
 
 def loss_criterion(start_logits, end_logits, start, end):
     loss_fn=nn.CrossEntropyLoss()
@@ -120,16 +121,8 @@ def train_model(model, tokenizer, dataloaders, outdir, loss_criterion, optimizer
             with torch.set_grad_enabled(True):
                 start_logits, end_logits = model(ids, attention_mask, token_type_ids)
 
-                token_start_pred = (torch.argmax(start_logits, dim=-1)
-                                .cpu()
-                                .detach()
-                                .numpy())
-
-                token_end_pred = (torch.argmax(end_logits, dim=-1)
-                                .cpu()
-                                .detach()
-                                .numpy())
-
+                token_start_pred = np.argmax(start_logits.cpu().detach().numpy(), axis=0)
+                token_end_pred = np.argmax(end_logits.cpu().detach().numpy(), axis=0)
                 ids = ids.cpu().detach().numpy()
 
                 batch_jaccard = batch_jaccard_similarity(ids, 
@@ -141,7 +134,7 @@ def train_model(model, tokenizer, dataloaders, outdir, loss_criterion, optimizer
                                             tokenizer)
 
                 loss = loss_criterion(start_logits, end_logits, token_start, token_end)
-                # print(f"Loss = {loss.item():10.4f}, Jaccard = {batch_jaccard:10.4f}")
+                print(f"Loss = {loss.item():10.4f}, Jaccard = {batch_jaccard:10.4f}")
 
                 loss.backward()
                 optimizer.step()
@@ -196,38 +189,22 @@ def train_model(model, tokenizer, dataloaders, outdir, loss_criterion, optimizer
 
         print()
 
-    best_auc = modelsinfo[0].auc
     time_elapsed = time.time() - since
     print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
     print('Best val loss: {:4f}'.format(best_auc))
 
     # model.load_state_dict(best_model_wts)
-    return modelsinfo
-
 
 def eval_model(model, tokenizer, dataloaders, loss_criterion, writer, device=Config.device):
-    since = time.time()
-    best_model_wts = copy.deepcopy(model.state_dict())
-
-    best_loss = 1e6
-
-    # modelinfo = namedtuple("Model", ("time", "path", "auc"))
-    # modelsinfo = [modelinfo(i, "output", 0.0) for i in range(maxmodels)]
-
-    # if modelpath:
-    #     checkpoint = torch.load(modelpath)
-    #     model.load_state_dict(checkpoint["model_state_dict"])
-
-    # class_names = dataloaders["train"].dataset.classes[P.classes_type]
-    # n_classes = len(class_names)
-    # global_step = 0
-
+    datatype = "valid" if "valid" in dataloaders else "train"
+    print(f"Evaluating model on {datatype} data")
     running_loss = 0.0
     jaccard_score = 0.0
+    datasize = 0
 
-    datatype = "valid" if "valid" in dataloaders else "train"
+    
 
-    for i, data in enumerate(dataloaders[datatype]):
+    for _, data in enumerate(dataloaders[datatype]):
             model.eval()
             
             (ids, 
@@ -276,7 +253,6 @@ def eval_model(model, tokenizer, dataloaders, loss_criterion, writer, device=Con
                                             selected_text, 
                                             sentiment, 
                                             tokenizer)
-                print(batch_jaccard)
                 loss = loss_criterion(start_logits, end_logits, token_start, token_end)
             
 
@@ -284,9 +260,9 @@ def eval_model(model, tokenizer, dataloaders, loss_criterion, writer, device=Con
 
             running_loss += loss.item() * attention_mask.size(0)
             jaccard_score += batch_jaccard * attention_mask.size(0)
-            print(jaccard_score)
+            datasize += attention_mask.size(0)
 
-    loss_avg = running_loss / len(dataloaders[datatype])
-    jaccard_avg = jaccard_score / len(dataloaders[datatype])
+    loss_avg = running_loss / datasize
+    jaccard_avg = jaccard_score / datasize
 
     print(f"Loss = {loss_avg:10.4f}, Jaccard = {jaccard_avg:10.4f}")
