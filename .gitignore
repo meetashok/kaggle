@@ -13,6 +13,8 @@ tweet-sentiment-extraction/submissions
 tweet-sentiment-extraction/models*
 tweet-sentiment-extraction/.DS_Store
 
+tweet-sentiment-extraction/runs
+
 ### wheat-detection
 wheat-detection/data
 
