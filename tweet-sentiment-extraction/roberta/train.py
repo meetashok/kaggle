@@ -86,7 +86,7 @@ def train_model(model, dataloaders, outdir, criterion, optimizer, scheduler, num
             sentiment) = (
                           data["ids"], 
                           data["attention_mask"], 
-                          data["token_type_ids"]
+                          data["token_type_ids"],
                           data["token_start"], 
                           data["token_end"], 
                           data["tweet"],
