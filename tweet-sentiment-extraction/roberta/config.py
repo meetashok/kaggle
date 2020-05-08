@@ -11,3 +11,5 @@ class Config:
     max_len = 96
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print(f"Running on device = {device}")
+
+    lr = 0.01
