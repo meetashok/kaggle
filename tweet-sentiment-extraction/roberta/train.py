@@ -182,6 +182,7 @@ def train_model(model, dataloaders, outdir, criterion, optimizer, scheduler, num
 
 if __name__ == "__main__":
     model = TweetModel(Config.roberta_config)
+    model = model.to(Config.device)
 
     train, test, _ = read_data()
     tokenizer = initialize_tokenizer(Config.roberta_vocab, Config.roberta_merges)

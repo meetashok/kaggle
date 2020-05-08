@@ -52,6 +52,7 @@ if __name__ == "__main__":
     token_type_ids = torch.tensor([encoded.type_ids], dtype=torch.long)
 
     model = TweetModel(Config.roberta_config)
+    model = model.to(Config.device)
 
     start, end = model(ids, attention_mask, token_type_ids)
 
