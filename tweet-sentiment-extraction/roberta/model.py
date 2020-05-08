@@ -24,7 +24,7 @@ class TweetModel(transformers.BertModel):
         super(TweetModel, self).__init__(config)
         print("Importing model...")
         self.roberta = transformers.RobertaModel.from_pretrained("roberta-base", config=config)
-        self.dropout = nn.Dropout(0.3)
+        self.dropout = nn.Dropout(0.1)
         self.linear = nn.Linear(config.hidden_size*2, 2)
 
     def forward(self, ids, attention_mask, token_type_ids):
@@ -37,7 +37,7 @@ class TweetModel(transformers.BertModel):
         out = self.dropout(out)
         logits = self.linear(out)
 
-        start, end = logits[:,:,0], logits[:,:,1]
+        start, end = logits.split(1, dim=-1)
 
         return start.squeeze(-1), end.squeeze(-1)
 

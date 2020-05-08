@@ -5,9 +5,9 @@ import string
 from nltk.corpus import stopwords
 from config import Config
 
-def read_data():
+def read_data(frac=1):
     print("Reading data...")
-    train = pd.read_csv(os.path.join(Config.datadir, "train.csv")).dropna().reset_index(drop=True)
+    train = pd.read_csv(os.path.join(Config.datadir, "train.csv")).sample(frac=frac).dropna().reset_index(drop=True)
     test = pd.read_csv(os.path.join(Config.datadir, "test.csv"))
     sample_submission = pd.read_csv(os.path.join(Config.datadir, "sample_submission.csv"))
 

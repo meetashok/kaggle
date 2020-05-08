@@ -4,6 +4,7 @@ from tokenizers import ByteLevelBPETokenizer
 from config import Config
 import torch
 import numpy as np
+from model import initialize_tokenizer
 
 def process_tweet(tweet, selected_text, sentiment, tokenizer, max_len):
     sentiment_ids = {
@@ -23,7 +24,7 @@ def process_tweet(tweet, selected_text, sentiment, tokenizer, max_len):
     encoded_tweet = tokenizer.encode(tweet)
         
     # filling the ids and attention_mask
-    ids_valid = [0] + [sentiment_ids[sentiment]] + [2, 2] + encoded_tweet.ids + [2]
+    ids_valid = [1] + [sentiment_ids[sentiment]] + [2, 2] + encoded_tweet.ids + [2]
     len_valid = len(ids_valid)
     attention_mask_valid = [1] * len_valid
 
@@ -47,16 +48,12 @@ def process_tweet(tweet, selected_text, sentiment, tokenizer, max_len):
     # finding the start and end tokens
     for token_index, (offset_start, offset_end) in enumerate(encoded_tweet.offsets):
         if (char_start >= offset_start) and (char_start <= offset_end):
-#             print(tweet[offset_start:offset_end], char_start, offset_start, offset_end, token_index)
             token_start = token_index
         if (char_end-1 >= offset_start) and (char_end <= offset_end):
-#             print(tweet[offset_start:offset_end], char_end, offset_start, offset_end, token_index)
             token_end = token_index
         
     assert token_start is not None
     assert token_end is not None
-#     print(bpe_tokenizer.decode(encoded_tweet.ids[token_start:(token_end+1)]))
-#     assert selected_text.lower() in bpe_tokenizer.decode(encoded_tweet.ids[token_start:(token_end+1)])
     
     token_start += 4
     token_end += 4
