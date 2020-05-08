@@ -13,6 +13,12 @@ tweet-sentiment-extraction/submissions
 tweet-sentiment-extraction/models*
 tweet-sentiment-extraction/.DS_Store
 
+### wheat-detection
+wheat-detection/data
+
+### jigsaw
+jigsaw/data
+
 *.DS_Store
 
 # Byte-compiled / optimized / DLL files
