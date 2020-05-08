@@ -23,6 +23,27 @@ def criterion(start_logits, end_logits, start, end):
 
     return (start_loss + end_loss) / 2
 
+def batch_jaccard_similarity(ids, token_start, token_end, tweet, selected_text, sentiment, tokenizer, th=3):
+    similarities = 0
+    for i in range(len(sentiment)):
+        if sentiment[i] == "neutral":
+            pred_selected_text = tweet[i]
+        elif len(tweet[i].split()) <= 3:
+            pred_selected_text = tweet[i]
+        else:
+            pred_selected_text = tokenizer.decode(ids[i, token_start[i]:token_end[i]+1]).strip()
+
+        if len(pred_selected_text) > len(tweet[i]):
+            pred_selected_text = tweet[i]
+
+        # print(tweet[i])
+        # print(selected_text[i])
+        # print(pred_selected_text)
+        similarity = jaccard_similarity(pred_selected_text, selected_text[i])
+        similarities += similarity
+    
+    return similarities / len(sentiment)
+
 def get_selected_text(ids, token_start, token_end, tokenizer):
     selected_ids = ids[token_start: token_end+1]
     selected_text = tokenizer.decode(selected_ids).strip()
@@ -61,7 +82,12 @@ def train_model(model, dataloaders, outdir, criterion, optimizer, scheduler, num
                                             data["token_type_ids"]
                                             )
 
-            token_start, token_end = data["token_start"], data["token_end"]
+            token_start, token_end, tweet, selected_text, sentiment = (
+                                    data["token_start"], 
+                                    data["token_end"], 
+                                    data["tweet"],
+                                    data["selected_text"],
+                                    data["sentiment"])
             
             ids = ids.to(device)
             attention_mask = attention_mask.to(device)
@@ -76,15 +102,27 @@ def train_model(model, dataloaders, outdir, criterion, optimizer, scheduler, num
                                             attention_mask=attention_mask,
                                             token_type_ids=token_type_ids)
 
+                token_start_pred = torch.argmax(start_logits, dim=-1).detach().numpy()
+                token_end_pred = torch.argmax(end_logits, dim=-1).detach().numpy()
+                ids = ids.detach().numpy()
+
+                batch_jaccard = batch_jaccard_similarity(ids, 
+                                            token_start_pred, 
+                                            token_end_pred, 
+                                            tweet, 
+                                            selected_text, 
+                                            sentiment, 
+                                            tokenizer)
+
                 loss = criterion(start_logits, end_logits, token_start, token_end)
-                print(f"Loss = {loss:10.4f}")
+                print(f"Loss = {loss.item():10.4f}, Jaccard = {batch_jaccard:10.4f}")
 
                 loss.backward()
                 optimizer.step()
 
                 # writer.add_scalar("loss/train", loss, global_step=global_step)
 
-            running_loss += loss.item() * ids.size(0)
+            running_loss += loss.item() * attention_mask.size(0)
             # running_corrects += torch.sum(preds == labels, 0)
             # if (i % P.printevery == 0) or (i==len(dataloaders["train"])-1):
             #     time_since = time.time() - since 
