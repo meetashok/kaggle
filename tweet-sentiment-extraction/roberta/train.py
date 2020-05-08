@@ -104,9 +104,9 @@ def train_model(model, dataloaders, outdir, criterion, optimizer, scheduler, num
                                             attention_mask=attention_mask,
                                             token_type_ids=token_type_ids)
 
-                token_start_pred = torch.argmax(start_logits, dim=-1).detach().numpy()
-                token_end_pred = torch.argmax(end_logits, dim=-1).detach().numpy()
-                ids = ids.detach().numpy()
+                token_start_pred = torch.argmax(start_logits, dim=-1).cpu().detach().numpy()
+                token_end_pred = torch.argmax(end_logits, dim=-1).cpu().detach().numpy()
+                ids = ids.cpu().detach().numpy()
 
                 batch_jaccard = batch_jaccard_similarity(ids, 
                                             token_start_pred, 
