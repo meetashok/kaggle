@@ -109,12 +109,12 @@ def train_model(model, dataloaders, outdir, criterion, optimizer, scheduler, num
                                             attention_mask=attention_mask,
                                             token_type_ids=token_type_ids)
 
-                token_start_pred = (torch.softmax(start_logits, dim=1)
+                token_start_pred = (torch.argmax(start_logits, dim=-1)
                                 .cpu()
                                 .detach()
                                 .numpy())
 
-                token_end_pred = (torch.softmax(end_logits, dim=1)
+                token_end_pred = (torch.argmax(end_logits, dim=-1)
                                 .cpu()
                                 .detach()
                                 .numpy())
