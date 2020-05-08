@@ -39,7 +39,7 @@ class TweetModel(transformers.BertModel):
 
         start, end = logits[:,:,0], logits[:,:,1]
 
-        return start, end
+        return start.squeeze(-1), end.squeeze(-1)
 
 if __name__ == "__main__":
     tokenizer = initialize_tokenizer(Config.roberta_vocab, Config.roberta_merges)
