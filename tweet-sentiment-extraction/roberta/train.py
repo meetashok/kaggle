@@ -92,6 +92,8 @@ def train_model(model, dataloaders, outdir, criterion, optimizer, scheduler, num
             ids = ids.to(device)
             attention_mask = attention_mask.to(device)
             token_type_ids = token_type_ids.to(device)
+            token_start = token_start.to(device)
+            token_end = token_end.to(device)
             
             # global_step += labels.size(0)
 
