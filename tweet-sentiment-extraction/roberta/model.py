@@ -37,7 +37,7 @@ class TweetModel(transformers.BertModel):
         out = self.dropout(out)
         logits = self.linear(out)
 
-        start, end = logits[:,:,0], logits[:,:,1]
+        start, end = logits.split(1, dim=-1)
 
         return start.squeeze(-1), end.squeeze(-1)
 
