@@ -14,6 +14,7 @@ import copy
 import torch
 import torch.nn as nn
 from model import initialize_tokenizer
+from transformers import AdamW
 
 def criterion(start_logits, end_logits, start, end):
     loss_fn=nn.CrossEntropyLoss()
@@ -28,7 +29,7 @@ def batch_jaccard_similarity(ids, token_start, token_end, tweet, selected_text, 
     for i in range(len(sentiment)):
         if sentiment[i] == "neutral":
             pred_selected_text = tweet[i]
-        elif len(tweet[i].split()) <= 3:
+        elif len(tweet[i].split()) <= th:
             pred_selected_text = tweet[i]
         else:
             pred_selected_text = tokenizer.decode(ids[i, token_start[i]:token_end[i]+1]).strip()
@@ -40,6 +41,14 @@ def batch_jaccard_similarity(ids, token_start, token_end, tweet, selected_text, 
         # print(selected_text[i])
         # print(pred_selected_text)
         similarity = jaccard_similarity(pred_selected_text, selected_text[i])
+        print("--------------")
+        print(tweet[i])
+        print(selected_text[i])
+        print(pred_selected_text)
+        print(token_start[i])
+        print(token_end[i])
+        print(sentiment[i])
+        print(similarity)
         similarities += similarity
     
     return similarities / len(sentiment)
@@ -138,6 +147,7 @@ def train_model(model, dataloaders, outdir, criterion, optimizer, scheduler, num
                 # writer.add_scalar("loss/train", loss, global_step=global_step)
 
             running_loss += loss.item() * attention_mask.size(0)
+            break
             # running_corrects += torch.sum(preds == labels, 0)
             # if (i % P.printevery == 0) or (i==len(dataloaders["train"])-1):
             #     time_since = time.time() - since 
@@ -197,12 +207,14 @@ if __name__ == "__main__":
     model = TweetModel(Config.roberta_config)
     model = model.to(Config.device)
 
+    print(list(model.parameters()))
+
     train, test, _ = read_data()
     tokenizer = initialize_tokenizer(Config.roberta_vocab, Config.roberta_merges)
     train_dataset = TweetData(train, tokenizer, Config.max_len)
 
     dataloaders = {
-        "train": DataLoader(train_dataset, batch_size=32)
+        "train": DataLoader(train_dataset, batch_size=5)
     }
 
     optimizer = optim.Adam(model.parameters(), 
@@ -210,6 +222,8 @@ if __name__ == "__main__":
             betas=(0.9, 0.999), 
             eps=1e-08, 
             weight_decay=1e-5)
+
+    optimizer = AdamW(model.parameters())
 
     scheduler = lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.1)
 
