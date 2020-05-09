@@ -14,8 +14,10 @@ class Config:
     print(f"Running on device = {device}")
 
     batch_size = 32
-    lr = 0.1
-    num_epochs = 10
+    lr = 3e-5
+    num_epochs = 100
+
+    frac = 0.01
 
     # helpers
     suffix = datetime.datetime.now().strftime("%Y.%m.%d.%H%M%S")

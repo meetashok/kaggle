@@ -34,15 +34,15 @@ class TweetModel(transformers.BertModel):
         _, _, out = self.roberta(
                         ids, 
                         attention_mask=attention_mask,
-                        token_type_ids=token_type_ids)
+                        )
         
-        out = torch.cat((out[-1], out[-1]), dim=-1)
-        out = self.dropout(out)
-        logits = self.linear(out)
+        x = torch.cat((out[-1], out[-2]), dim=-1)
+        x = self.dropout(x)
+        logits = self.linear(x)
 
-        start, end = logits.split(1, dim=-1)
+        start, end = logits[:,:,0], logits[:,:,1]
 
-        return start.squeeze(-1), end.squeeze(-1)
+        return start, end
 
 if __name__ == "__main__":
     tokenizer = initialize_tokenizer(Config.roberta_vocab, Config.roberta_merges)

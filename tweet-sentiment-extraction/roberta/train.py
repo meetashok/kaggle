@@ -13,12 +13,12 @@ if __name__ == "__main__":
     model = TweetModel(Config.roberta_config)
     model = model.to(Config.device)  
 
-    train, test, _ = read_data(frac=1)
+    train, test, _ = read_data(Config.frac)
     tokenizer = initialize_tokenizer(Config.roberta_vocab, Config.roberta_merges)
     train_dataset = TweetData(train, tokenizer, Config.max_len)
 
     dataloaders = {
-        "train": DataLoader(train_dataset, batch_size=Config.batch_size)
+        "train": DataLoader(train_dataset, batch_size=Config.batch_size, shuffle=False)
     }
 
     # optimizer = optim.Adam(model.parameters(), 
@@ -32,4 +32,16 @@ if __name__ == "__main__":
     optimizer = AdamW(model.parameters())
     scheduler = lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.1)
 
-    train_model(model, tokenizer, dataloaders, Config.modelsdir, loss_criterion, optimizer, scheduler, writer, num_epochs=Config.num_epochs)
+    model_params = {
+        "tokenizer": tokenizer,
+        "dataloaders": dataloaders,
+        "modelsdir": Config.modelsdir,
+        "loss_criterion": loss_criterion,
+        "optimizer": optimizer,
+        "scheduler": scheduler,
+        "writer": writer,
+        "num_epochs": Config.num_epochs,
+        "device": Config.device,
+    }
+
+    train_model(model, model_params)

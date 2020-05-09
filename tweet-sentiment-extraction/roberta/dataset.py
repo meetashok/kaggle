@@ -14,7 +14,7 @@ def process_tweet(tweet, selected_text, sentiment, tokenizer, max_len):
     }
     
     # initializing ids, attention_mask, token_type_ids
-    ids = np.zeros((max_len), dtype=np.int32)
+    ids = np.ones((max_len), dtype=np.int32)
     attention_mask = np.zeros((max_len), dtype=np.int32)
     token_type_ids = np.zeros((max_len), dtype=np.int32)
     
@@ -24,7 +24,7 @@ def process_tweet(tweet, selected_text, sentiment, tokenizer, max_len):
     encoded_tweet = tokenizer.encode(tweet)
         
     # filling the ids and attention_mask
-    ids_valid = [1] + [sentiment_ids[sentiment]] + [2, 2] + encoded_tweet.ids + [2]
+    ids_valid = [0] + [sentiment_ids[sentiment]] + [2, 2] + encoded_tweet.ids + [2]
     len_valid = len(ids_valid)
     attention_mask_valid = [1] * len_valid
 
@@ -78,7 +78,7 @@ class TweetData(Dataset):
         return len(self.dataframe.index)
 
     def __getitem__(self, item):
-        row = self.dataframe.loc[item]
+        row = self.dataframe.iloc[item]
 
         tweet = row.text
         selected_text = row.selected_text
