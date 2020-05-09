@@ -116,16 +116,15 @@ def train_model(model, dataloader, model_params):
                                             tokenizer)
 
                 print(f"Loss = {loss.item():7.4f}, Jaccard = {batch_jaccard:6.4f}, \
-                    Batch count: {batch_count:4,}, Batch incorrect: {batch_incorrect:4,}")
+                    Batch count: {batch_count:6,}, Batch incorrect: {batch_incorrect:4,}")
 
 
             # writer.add_scalar("loss/train", loss, global_step=global_step)
 
-        running_loss += loss.item()  * attention_mask.size(0)
+            running_loss += loss.item()  * attention_mask.size(0)
 
-    
     epoch_loss = running_loss / len(dataloader)
-    print('Train Loss: {:.4f}'.format(epoch_loss))
+    # print('Train Loss: {:.4f}'.format(epoch_loss))
 
 
 def eval_model(model, dataloader, model_params):

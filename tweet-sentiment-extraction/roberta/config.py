@@ -15,10 +15,10 @@ class Config:
 
     batch_size = 32
     lr = 3e-5
-    num_epochs = 10
+    num_epochs = 3
     verbose = False
 
-    frac = 0.1
+    frac = 0.001
 
     fold = 1
 
