@@ -31,7 +31,6 @@ def process_tweet(tweet, selected_text, sentiment, tokenizer, max_len):
     ids[:len_valid] = ids_valid
     attention_mask[:len_valid] = attention_mask_valid
     
-    
     # finding the start and end of selected_text
     selected_text_len = len(selected_text)
 
