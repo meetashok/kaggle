@@ -10,7 +10,12 @@ from transformers import AdamW
 from torch.optim import lr_scheduler
 from torch.utils.data import DataLoader
 
-if __name__ == "__main__":
+def run(fold):
+    print("-"*20)
+    print(f"Running fold = {fold}")
+    print("-"*20)
+
+    # loading and setting up model, optimizer
     model = TweetModel(Config.roberta_config)
     param_optimizer = list(model.named_parameters())
     no_decay = ["bias", "LayerNorm.bias", "LayerNorm.weight"]
@@ -22,10 +27,11 @@ if __name__ == "__main__":
     
     model = model.to(Config.device)  
     
+    # preparing data 
     data, test, _ = read_data(Config.frac)
 
-    train = data.query("fold != @Config.fold").reset_index(drop=True)
-    valid = data.query("fold == @Config.fold").reset_index(drop=True)
+    train = data.query("fold != @fold").reset_index(drop=True)
+    valid = data.query("fold == @fold").reset_index(drop=True)
 
     tokenizer = initialize_tokenizer(Config.roberta_vocab, Config.roberta_merges)
     
@@ -37,7 +43,7 @@ if __name__ == "__main__":
         "valid": DataLoader(valid_dataset, batch_size=Config.batch_size, shuffle=False)
     }
 
-    writer = tensorboard.SummaryWriter(log_dir=f"../runs/roberta_{Config.suffix}")
+    writer = tensorboard.SummaryWriter(log_dir=f"runs/roberta_{Config.suffix}_fold={fold}")
 
     num_train_steps = int(len(train) / Config.batch_size * Config.num_epochs)
     scheduler = get_linear_schedule_with_warmup(
@@ -57,21 +63,20 @@ if __name__ == "__main__":
         "verbose": Config.verbose
     }
 
-    metrics = {
-        "train": { "loss": [], "jaccard": [] },
-        "valid": { "loss": [], "jaccard": [] },
-    }
-
     for epoch in range(Config.num_epochs):
+        print("-"*20)
         print('Epoch {}/{}'.format(epoch+1, Config.num_epochs))
         train_model(model, dataloaders["train"], model_params)
         
         print("Evaluating training data")
-        loss, jaccard = eval_model(model, dataloaders["train"], model_params)
-        metrics["train"]["loss"] += [loss]
-        metrics["train"]["jaccard"] += [jaccard]
+        train_loss, train_jaccard = eval_model(model, dataloaders["train"], model_params)
 
         print("Evaluating validation data")
-        loss, jaccard = eval_model(model, dataloaders["valid"], model_params)
-        metrics["valid"]["loss"] += [loss]
-        metrics["valid"]["jaccard"] += [jaccard]
+        valid_loss, valid_jaccard = eval_model(model, dataloaders["valid"], model_params)
+
+        writer.add_scalars(f"fold={fold}/loss",    {"train": train_loss, "valid": valid_loss}, global_step=epoch+1)
+        writer.add_scalars(f"fold={fold}/jaccard", {"train": train_jaccard, "valid": valid_jaccard}, global_step=epoch+1)
+
+if __name__ == "__main__":
+    for fold in range(1, 6):
+        run(fold)
