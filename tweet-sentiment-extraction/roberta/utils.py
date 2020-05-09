@@ -5,9 +5,28 @@ import string
 from nltk.corpus import stopwords
 from config import Config
 
+from sklearn.model_selection import StratifiedKFold
+
+def kfold_indices(dataframe, n_splits=5):
+    kfold = StratifiedKFold(n_splits=5, shuffle=True, random_state=2)
+    df_fold = {"index": [], "fold": []}
+
+    splits = kfold.split(np.arange(dataframe.index.size), y=dataframe.sentiment)
+    for i, (_, split) in enumerate(splits):
+        df_fold["index"].extend(split)
+        df_fold["fold"].extend([i+1]*len(split))
+
+    merged = (dataframe
+              .merge(pd.DataFrame(df_fold).set_index("index"), left_index=True, right_index=True)
+             )
+    
+    return merged
+
 def read_data(frac=1):
     print("Reading data...")
     train = pd.read_csv(os.path.join(Config.datadir, "train.csv")).sample(frac=frac).dropna().reset_index(drop=True)
+    train = kfold_indices(train)
+
     test = pd.read_csv(os.path.join(Config.datadir, "test.csv"))
     sample_submission = pd.read_csv(os.path.join(Config.datadir, "sample_submission.csv"))
 

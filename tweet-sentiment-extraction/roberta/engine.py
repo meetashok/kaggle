@@ -64,42 +64,42 @@ def train_model(model, model_params):
     optimizer = model_params.get("optimizer")
     scheduler = model_params.get("scheduler")
     writer = model_params.get("writer")
-    num_epochs = model_params.get("num_epochs")
     device = model_params.get("device")
-
-    since = time.time()
-
-    for epoch in range(num_epochs):
-        print('Epoch {}/{}'.format(epoch+1, num_epochs))
-        print('-' * 10)
         
-        running_loss = 0.0
+    running_loss = 0.0
 
-        for i, data in enumerate(dataloaders["train"]):
-            # print(model.linear.weight)       
-            ids = data.get("ids")
-            attention_mask = data.get("attention_mask")
-            token_type_ids = data.get("token_type_ids")
-            token_start = data.get("token_start")
-            token_end = data.get("token_end")
-            tweet = data.get("tweet")
-            selected_text = data.get("selected_text")
-            sentiment = data.get("sentiment")
+    for i, data in enumerate(dataloaders["train"]):
+        # print(model.linear.weight)       
+        ids = data.get("ids")
+        attention_mask = data.get("attention_mask")
+        token_type_ids = data.get("token_type_ids")
+        token_start = data.get("token_start")
+        token_end = data.get("token_end")
+        tweet = data.get("tweet")
+        selected_text = data.get("selected_text")
+        sentiment = data.get("sentiment")
+        verbose = data.get("verbose")
+        
+        ids = ids.to(device)
+        attention_mask = attention_mask.to(device)
+        token_type_ids = token_type_ids.to(device)
+        token_start = token_start.to(device)
+        token_end = token_end.to(device)
+
+        with torch.set_grad_enabled(True):
+            start_logits, end_logits = model(ids, attention_mask, token_type_ids)
+            loss = loss_criterion(start_logits, end_logits, token_start, token_end)
             
-            ids = ids.to(device)
-            attention_mask = attention_mask.to(device)
-            token_type_ids = token_type_ids.to(device)
-            token_start = token_start.to(device)
-            token_end = token_end.to(device)
+            loss.backward()
+            optimizer.step()
+            scheduler.step()
+            optimizer.zero_grad()
 
-            with torch.set_grad_enabled(True):
-                start_logits, end_logits = model(ids, attention_mask, token_type_ids)
-                loss = loss_criterion(start_logits, end_logits, token_start, token_end)
-
+            if verbose: 
                 token_start_pred = (torch.argmax(start_logits, dim=-1)
-                            .cpu()
-                            .detach()
-                            .numpy())
+                        .cpu()
+                        .detach()
+                        .numpy())
 
                 token_end_pred = (torch.argmax(end_logits, dim=-1)
                             .cpu()
@@ -119,18 +119,14 @@ def train_model(model, model_params):
                 print(f"Loss = {loss.item():7.4f}, Jaccard = {batch_jaccard:6.4f}, \
                     Batch count: {batch_count:4,}, Batch incorrect: {batch_incorrect:4,}")
 
-                loss.backward()
-                optimizer.step()
-                optimizer.zero_grad()
 
-                # writer.add_scalar("loss/train", loss, global_step=global_step)
+            # writer.add_scalar("loss/train", loss, global_step=global_step)
 
-            running_loss += loss.item()  * attention_mask.size(0)
+        running_loss += loss.item()  * attention_mask.size(0)
 
-        eval_model(model, model_params)
-        scheduler.step()
-        epoch_loss = running_loss / len(dataloaders["train"])
-        print('Train Loss: {:.4f}'.format(epoch_loss))
+    
+    epoch_loss = running_loss / len(dataloaders["train"])
+    print('Train Loss: {:.4f}'.format(epoch_loss))
 
 
 def eval_model(model, model_params):
@@ -138,7 +134,6 @@ def eval_model(model, model_params):
     dataloaders = model_params.get("dataloaders")
     loss_criterion = model_params.get("loss_criterion")
     writer = model_params.get("writer")
-    num_epochs = model_params.get("num_epochs")
     device = model_params.get("device")
 
 

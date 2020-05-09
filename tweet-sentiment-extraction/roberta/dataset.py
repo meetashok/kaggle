@@ -5,6 +5,7 @@ from config import Config
 import torch
 import numpy as np
 from model import initialize_tokenizer
+from sklearn.model_selection import StratifiedKFold
 
 def process_tweet(tweet, selected_text, sentiment, tokenizer, max_len):
     sentiment_ids = {
@@ -103,6 +104,14 @@ class TweetData(Dataset):
             "selected_text": selected_text,
             "sentiment": sentiment
         }
+
+def kfold_indices(dataframe, n_splits=5):
+    kfold = StratifiedKFold(n_splits=5, shuffle=True, random_state=2)
+    splits = []
+    for split in kfold.split(np.arange(dataframe.index.size), y=dataframe.sentiment):
+        splits += [split]
+
+    return splits
 
 if __name__ == "__main__":
     train, test, _ = read_data()
