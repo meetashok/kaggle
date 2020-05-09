@@ -18,7 +18,7 @@ class Config:
     num_epochs = 10
     verbose = False
 
-    frac = 0.1
+    frac = 1
 
     fold = 1
 
