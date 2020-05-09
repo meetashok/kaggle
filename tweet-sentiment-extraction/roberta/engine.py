@@ -34,7 +34,7 @@ def batch_jaccard_similarity(ids, token_start_pred, token_end_pred, tweet, selec
         if (sentiment[i] == "neutral") or len(tweet[i].split()) <= th:
             pred_selected_text = tweet[i]
         else:
-            pred_selected_text = tokenizer.decode(ids[i, token_start_pred[i]:token_end_pred[i]+1]).strip()
+            pred_selected_text = get_selected_text(ids[i], token_start_pred[i], token_end_pred[i], tokenizer)
 
         if len(pred_selected_text) > len(tweet[i]):
             pred_selected_text = tweet[i]
@@ -116,7 +116,8 @@ def train_model(model, model_params):
                                             sentiment, 
                                             tokenizer)
 
-                print(f"Loss = {loss.item():7.4f}, Jaccard = {batch_jaccard:6.4f}, Batch count: {batch_count:4,}, Batch incorrect: {batch_incorrect:4,}")
+                print(f"Loss = {loss.item():7.4f}, Jaccard = {batch_jaccard:6.4f}, \
+                    Batch count: {batch_count:4,}, Batch incorrect: {batch_incorrect:4,}")
 
                 loss.backward()
                 optimizer.step()

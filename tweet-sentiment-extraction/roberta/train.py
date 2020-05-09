@@ -3,6 +3,7 @@ from model import TweetModel, initialize_tokenizer
 from config import Config
 from utils import read_data
 from dataset import TweetData
+from transformers import get_linear_schedule_with_warmup
 
 from torch.utils import tensorboard
 from transformers import AdamW
@@ -11,6 +12,13 @@ from torch.utils.data import DataLoader
 
 if __name__ == "__main__":
     model = TweetModel(Config.roberta_config)
+    param_optimizer = list(model.named_parameters())
+    no_decay = ["bias", "LayerNorm.bias", "LayerNorm.weight"]
+    optimizer_parameters = [
+        {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': 0.001},
+        {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0},
+    ]
+    
     model = model.to(Config.device)  
 
     train, test, _ = read_data(Config.frac)
@@ -29,8 +37,15 @@ if __name__ == "__main__":
 
     writer = tensorboard.SummaryWriter(log_dir=f"../runs/roberta_{Config.suffix}")
 
-    optimizer = AdamW(model.parameters())
-    scheduler = lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.1)
+    optimizer = AdamW(optimizer_parameters, lr=3e-5)
+
+    num_train_steps = int(len(train) / Config.batch_size * Config.num_epochs)
+
+    scheduler = get_linear_schedule_with_warmup(
+        optimizer, 
+        num_warmup_steps=0, 
+        num_training_steps=num_train_steps
+    )
 
     model_params = {
         "tokenizer": tokenizer,
