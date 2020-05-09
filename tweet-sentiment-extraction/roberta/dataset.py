@@ -7,6 +7,7 @@ import numpy as np
 from model import initialize_tokenizer
 from sklearn.model_selection import StratifiedKFold
 
+
 def process_tweet(tweet, selected_text, sentiment, tokenizer, max_len):
     sentiment_ids = {
             'positive': 1313, 
@@ -15,7 +16,7 @@ def process_tweet(tweet, selected_text, sentiment, tokenizer, max_len):
     }
     
     # initializing ids, attention_mask, token_type_ids
-    ids = np.zeros((max_len), dtype=np.int32)
+    ids = np.ones((max_len), dtype=np.int32)
     attention_mask = np.zeros((max_len), dtype=np.int32)
     token_type_ids = np.zeros((max_len), dtype=np.int32)
     
@@ -25,7 +26,7 @@ def process_tweet(tweet, selected_text, sentiment, tokenizer, max_len):
     encoded_tweet = tokenizer.encode(tweet)
         
     # filling the ids and attention_mask
-    ids_valid = [1] + [sentiment_ids[sentiment]] + [2, 2] + encoded_tweet.ids + [2]
+    ids_valid = [0] + [sentiment_ids[sentiment]] + [2, 2] + encoded_tweet.ids + [2]
     len_valid = len(ids_valid)
     attention_mask_valid = [1] * len_valid
 
@@ -83,6 +84,7 @@ class TweetData(Dataset):
         tweet = row.text
         selected_text = row.selected_text
         sentiment = row.sentiment
+        textID = row.textID
 
         (
         ids,
@@ -102,7 +104,8 @@ class TweetData(Dataset):
             "token_end": torch.tensor(token_end, dtype=torch.long),
             "tweet": tweet,
             "selected_text": selected_text,
-            "sentiment": sentiment
+            "sentiment": sentiment,
+            "textID": textID
         }
 
 def kfold_indices(dataframe, n_splits=5):

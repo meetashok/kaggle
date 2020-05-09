@@ -17,6 +17,7 @@ from model import initialize_tokenizer
 from transformers import AdamW
 from torch.utils import tensorboard
 import numpy as np
+import torch
 
 def loss_criterion(start_logits, end_logits, start, end):
     loss_fn = nn.CrossEntropyLoss()
@@ -28,31 +29,29 @@ def loss_criterion(start_logits, end_logits, start, end):
 
 def batch_jaccard_similarity(ids, token_start_pred, token_end_pred, tweet, selected_text, sentiment, tokenizer, th=3):
     similarities = 0
-    count_incorrect = 0
 
     for i in range(len(sentiment)):
         if (sentiment[i] == "neutral") or len(tweet[i].split()) <= th:
             pred_selected_text = tweet[i]
         else:
-            pred_selected_text = get_selected_text(ids[i], token_start_pred[i], token_end_pred[i], tokenizer)
-
-        if len(pred_selected_text) > len(tweet[i]):
-            pred_selected_text = tweet[i]
-            count_incorrect += 1
-
-        if token_end_pred[i] < token_start_pred[i]:
-            pred_selected_text = tweet[i]
-            count_incorrect +=1 
+            pred_selected_text = get_selected_text(ids[i], tweet[i], token_start_pred[i], token_end_pred[i], tokenizer)
 
         similarity = jaccard_similarity(pred_selected_text, selected_text[i])
         similarities += similarity
     
-    return similarities / len(sentiment), len(sentiment), count_incorrect
+    return similarities / len(sentiment), len(sentiment)
 
-def get_selected_text(ids, token_start, token_end, tokenizer):
+def get_selected_text(ids, tweet, token_start, token_end, tokenizer):
     selected_ids = ids[token_start: token_end+1]
-    selected_text = tokenizer.decode(selected_ids).strip()
-    return selected_text
+    pred_selected_text = tokenizer.decode(selected_ids).strip()
+
+    if len(pred_selected_text) > len(tweet):
+        pred_selected_text = tweet.strip()
+
+    if token_start > token_end:
+        pred_selected_text = tweet.strip()
+
+    return pred_selected_text
 
 def train_model(model, dataloader, model_params):
     model.train()
@@ -101,13 +100,13 @@ def train_model(model, dataloader, model_params):
                         .numpy())
 
                 token_end_pred = (torch.argmax(end_logits, dim=-1)
-                            .cpu()
-                            .detach()
-                            .numpy())
+                        .cpu()
+                        .detach()
+                        .numpy())
 
                 ids = ids.cpu().detach().numpy()
 
-                batch_jaccard, batch_count, batch_incorrect = batch_jaccard_similarity(ids, 
+                batch_jaccard, batch_count = batch_jaccard_similarity(ids, 
                                             token_start_pred, 
                                             token_end_pred, 
                                             tweet, 
@@ -115,8 +114,7 @@ def train_model(model, dataloader, model_params):
                                             sentiment, 
                                             tokenizer)
 
-                print(f"Loss = {loss.item():7.4f}, Jaccard = {batch_jaccard:6.4f}, \
-                    Batch count: {batch_count:6,}, Batch incorrect: {batch_incorrect:4,}")
+                print(f"Loss = {loss.item():7.4f}, Jaccard = {batch_jaccard:6.4f}")
 
 
             # writer.add_scalar("loss/train", loss, global_step=global_step)
@@ -173,7 +171,7 @@ def eval_model(model, dataloader, model_params):
 
             ids = ids.cpu().detach().numpy()
 
-            batch_jaccard, total_count_batch, count_incorrect_batch  = batch_jaccard_similarity(ids, 
+            batch_jaccard, total_count_batch  = batch_jaccard_similarity(ids, 
                                         token_start_pred, 
                                         token_end_pred, 
                                         tweet, 
@@ -183,11 +181,10 @@ def eval_model(model, dataloader, model_params):
             
             jaccard_score += batch_jaccard * total_count_batch
             total_count += total_count_batch
-            count_incorrect += count_incorrect_batch
 
     loss_avg = running_loss / total_count
     jaccard_avg = jaccard_score / total_count
 
-    print(f"Loss = {loss_avg:7.4f}, Jaccard = {jaccard_avg:6.4f}, Batch count: {total_count:4,}, Batch incorrect: {count_incorrect:4,}")
+    print(f"Loss = {loss_avg:7.4f}, Jaccard = {jaccard_avg:6.4f}")
 
     return (loss_avg, jaccard_avg)

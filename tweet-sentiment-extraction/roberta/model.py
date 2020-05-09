@@ -25,7 +25,7 @@ class TweetModel(nn.Module):
         super(TweetModel, self).__init__()
         print("Importing model...")
         self.roberta = transformers.RobertaModel.from_pretrained("roberta-base", config=config)
-        self.dropout = nn.Dropout(0.1)
+        self.dropout = nn.Dropout(0.3)
         self.linear = nn.Linear(config.hidden_size*2, 2)
         nn.init.normal_(self.linear.weight, std=0.02)
 
@@ -41,6 +41,43 @@ class TweetModel(nn.Module):
         logits = self.linear(x)
 
         start, end = logits[:,:,0], logits[:,:,1]
+
+        return start, end
+
+class TweetModel2(nn.Module):
+    def __init__(self, config):
+        super(TweetModel2, self).__init__()
+        print("Importing model...")
+        self.roberta = transformers.RobertaModel.from_pretrained("roberta-base", config=config)
+        self.dropout = nn.Dropout(0.3)
+        self.conv1 = nn.Conv1d(config.hidden_size, 32, 3, padding=1)
+        self.conv2 = nn.Conv1d(32, 64, 3, padding=1)
+        self.linear = nn.Linear(64, 1)
+
+    def forward(self, ids, attention_mask, token_type_ids):
+        _, _, out = self.roberta(
+                        ids, 
+                        attention_mask=attention_mask,
+                        )
+        
+        out1, out2 = out[-1], out[-2]
+        out1, out2 = out1.transpose(1, 2), out2.transpose(1, 2)
+
+        out1 = self.conv1(out1)
+        out1 = nn.ReLU()(out1)
+        out1 = self.conv2(out1)
+        out1 = nn.ReLU()(out1)
+        out1 = out1.transpose(1, 2)
+        out1 = self.linear(out1)
+
+        out2 = self.conv1(out2)
+        out2 = nn.ReLU()(out2)
+        out2 = self.conv2(out2)
+        out2 = nn.ReLU()(out2)
+        out2 = out2.transpose(1, 2)
+        out2 = self.linear(out2)
+        
+        start, end = out1.squeeze(), out2.squeeze()
 
         return start, end
 

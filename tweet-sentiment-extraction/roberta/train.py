@@ -1,5 +1,6 @@
 from engine import train_model, loss_criterion, eval_model
-from model import TweetModel, initialize_tokenizer
+from model import TweetModel, TweetModel2
+from model import initialize_tokenizer
 from config import Config
 from utils import read_data
 from dataset import TweetData
@@ -9,14 +10,12 @@ from torch.utils import tensorboard
 from transformers import AdamW
 from torch.optim import lr_scheduler
 from torch.utils.data import DataLoader
+import os
+import torch
 
 def run(fold):
-    print("-"*20)
-    print(f"Running fold = {fold}")
-    print("-"*20)
-
     # loading and setting up model, optimizer
-    model = TweetModel(Config.roberta_config)
+    model = TweetModel2(Config.roberta_config)
     param_optimizer = list(model.named_parameters())
     no_decay = ["bias", "LayerNorm.bias", "LayerNorm.weight"]
     optimizer_parameters = [
@@ -28,7 +27,7 @@ def run(fold):
     model = model.to(Config.device)  
     
     # preparing data 
-    data, test, _ = read_data(Config.frac)
+    data, _, _ = read_data(Config.frac)
 
     train = data.query("fold != @fold").reset_index(drop=True)
     valid = data.query("fold == @fold").reset_index(drop=True)
@@ -54,7 +53,6 @@ def run(fold):
 
     model_params = {
         "tokenizer": tokenizer,
-        "modelsdir": Config.modelsdir,
         "loss_criterion": loss_criterion,
         "optimizer": optimizer,
         "scheduler": scheduler,
@@ -77,6 +75,15 @@ def run(fold):
         writer.add_scalars(f"fold={fold}/loss",    {"train": train_loss, "valid": valid_loss}, global_step=epoch+1)
         writer.add_scalars(f"fold={fold}/jaccard", {"train": train_jaccard, "valid": valid_jaccard}, global_step=epoch+1)
 
+    print("Saving model...")
+    modeloutput = os.path.join(Config.modelsdir, Config.suffix, f"fold{fold}.bin")
+    torch.save({"model_state_dict": model.state_dict()}, modeloutput)
+
 if __name__ == "__main__":
-    for fold in range(1, 6):
+    os.mkdir(os.path.join(Config.modelsdir, Config.suffix))
+    for fold in range(1, Config.nfolds+1):
+        print("-"*20)
+        print(f"Running fold = {fold}")
+        print("-"*20)
+
         run(fold)
