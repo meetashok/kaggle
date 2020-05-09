@@ -16,8 +16,11 @@ class Config:
     batch_size = 32
     lr = 3e-5
     num_epochs = 10
+    verbose = False
 
-    frac = 1
+    frac = 0.01
+
+    fold = 1
 
     # helpers
     suffix = datetime.datetime.now().strftime("%Y.%m.%d.%H%M%S")

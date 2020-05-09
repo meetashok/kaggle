@@ -1,4 +1,4 @@
-from engine import train_model, loss_criterion
+from engine import train_model, loss_criterion, eval_model
 from model import TweetModel, initialize_tokenizer
 from config import Config
 from utils import read_data
@@ -18,29 +18,28 @@ if __name__ == "__main__":
         {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': 0.001},
         {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0},
     ]
+    optimizer = AdamW(optimizer_parameters, lr=Config.lr)
     
     model = model.to(Config.device)  
+    
+    data, test, _ = read_data(Config.frac)
 
-    train, test, _ = read_data(Config.frac)
+    train = data.query("fold != @Config.fold").reset_index(drop=True)
+    valid = data.query("fold == @Config.fold").reset_index(drop=True)
+
     tokenizer = initialize_tokenizer(Config.roberta_vocab, Config.roberta_merges)
+    
     train_dataset = TweetData(train, tokenizer, Config.max_len)
+    valid_dataset = TweetData(valid, tokenizer, Config.max_len)
 
     dataloaders = {
-        "train": DataLoader(train_dataset, batch_size=Config.batch_size, shuffle=False)
+        "train": DataLoader(train_dataset, batch_size=Config.batch_size, shuffle=False),
+        "valid": DataLoader(valid_dataset, batch_size=Config.batch_size, shuffle=False)
     }
-
-    # optimizer = optim.Adam(model.parameters(), 
-    #         lr=Config.lr, 
-    #         betas=(0.9, 0.999), 
-    #         eps=1e-08, 
-    #         weight_decay=1e-5)
 
     writer = tensorboard.SummaryWriter(log_dir=f"../runs/roberta_{Config.suffix}")
 
-    optimizer = AdamW(optimizer_parameters, lr=3e-5)
-
     num_train_steps = int(len(train) / Config.batch_size * Config.num_epochs)
-
     scheduler = get_linear_schedule_with_warmup(
         optimizer, 
         num_warmup_steps=0, 
@@ -55,8 +54,11 @@ if __name__ == "__main__":
         "optimizer": optimizer,
         "scheduler": scheduler,
         "writer": writer,
-        "num_epochs": Config.num_epochs,
         "device": Config.device,
+        "verbose": Config.verbose
     }
 
-    train_model(model, model_params)
+    for epoch in range(Config.num_epochs):
+        print('Epoch {}/{}'.format(epoch+1, Config.num_epochs))
+        train_model(model, model_params)
+        eval_model(model, dataloaders)
