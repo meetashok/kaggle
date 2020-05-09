@@ -36,7 +36,7 @@ class TweetModel(transformers.BertModel):
                         attention_mask=attention_mask,
                         token_type_ids=token_type_ids)
         
-        out = torch.cat((out[-1], out[-2]), dim=-1)
+        out = torch.cat((out[-1], out[-1]), dim=-1)
         out = self.dropout(out)
         logits = self.linear(out)
 

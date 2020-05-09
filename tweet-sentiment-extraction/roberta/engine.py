@@ -87,7 +87,7 @@ def train_model(model, tokenizer, dataloaders, outdir, loss_criterion, optimizer
         running_loss = 0.0
         # all_probs, all_labels = [], []
 
-        for i, data in enumerate(dataloaders["train"]):
+        for _, data in enumerate(dataloaders["train"]):
             model.train()
             
             (ids, 
@@ -114,8 +114,6 @@ def train_model(model, tokenizer, dataloaders, outdir, loss_criterion, optimizer
             token_start = token_start.to(device)
             token_end = token_end.to(device)
             
-            # global_step += labels.size(0)
-
             optimizer.zero_grad()
 
             with torch.set_grad_enabled(True):
@@ -134,7 +132,7 @@ def train_model(model, tokenizer, dataloaders, outdir, loss_criterion, optimizer
                                             tokenizer)
 
                 loss = loss_criterion(start_logits, end_logits, token_start, token_end)
-                print(f"Loss = {loss.item():10.4f}, Jaccard = {batch_jaccard:10.4f}")
+                # print(f"Loss = {loss.item():10.4f}, Jaccard = {batch_jaccard:10.4f}")
 
                 loss.backward()
                 optimizer.step()
@@ -142,58 +140,12 @@ def train_model(model, tokenizer, dataloaders, outdir, loss_criterion, optimizer
                 # writer.add_scalar("loss/train", loss, global_step=global_step)
 
             running_loss += loss.item() * attention_mask.size(0)
-            
-            # running_corrects += torch.sum(preds == labels, 0)
-            # if (i % P.printevery == 0) or (i==len(dataloaders["train"])-1):
-            #     time_since = time.time() - since 
-            #     print("Phase: Train, Epoch: {:2}, Iteration: {:2}/{}, Progress: {:.0f}%, Loss: {:.4f}, Time: {:.0f}m {:.0f}s".format( 
-            #         epoch+1, i, len(dataloaders["train"]), 100. * (i) / len(dataloaders["train"]), loss.item(), time_since // 60, time_since % 60))
-            #if i % P.evaluateevery == 0:
-                # all_probs_valid, all_labels_valid, eval_loss = evaluate_singlemodel(model, criterion, dataloaders["valid"])
-                # all_probs_valid = torch.cat(all_probs_valid, dim=0).detach().numpy()
-                # all_labels_valid = torch.cat(all_labels_valid, dim=0).detach().numpy()
-                # eval_metrics = compute_metrics(all_probs_valid, all_labels_valid)
-                # eval_auc = roc_auc_score(all_labels_valid.ravel(), all_probs_valid.ravel())
-
-                # for j in range(n_classes):
-                #     writer.add_scalar("AUC_valid/{}".format(class_names[j]), eval_metrics["aucs"][j], global_step=global_step)
-                #     print("AUC for {:30} = {:.3f}".format(class_names[j], eval_metrics["aucs"][j]))
-                # writer.add_scalar("AUC_valid/overall", eval_auc, global_step=global_step)
-                # writer.add_scalars("loss", {"train": loss.item(), "valid": eval_loss}, global_step=global_step)
-            
-                # if eval_auc > modelsinfo[-1].auc:
-                #     if modelsinfo[-1].path != "output": # delete the worst existing model
-                #         os.remove(os.path.join(outdir, modelsinfo[-1].path))
-                    
-                #     timenow = int(round(time.time(), 0))
-                #     outfile = "epoch{}_itr{}.pt".format(epoch+1, i)
-                #     modelsinfo[-1] = modelinfo(timenow, outfile, eval_auc)
-                #     modelsinfo = sorted(modelsinfo, key=lambda model: model.auc, reverse=True)
-
-                #     torch.save({
-                #         "model_state_dict": model.state_dict(),
-                #         "valid_loss": eval_loss,
-                #         "epoch": epoch,
-                #         "global_step": global_step,
-                #         "params": P,
-                #         "classes": class_names,
-                #         "labels": all_labels_valid,
-                #         "probs": all_probs_valid},
-                #         # "models": modelsinfo}, 
-                #         os.path.join(outdir, outfile))
 
         eval_model(model, tokenizer, dataloaders, loss_criterion, writer)
         scheduler.step()
         epoch_loss = running_loss / len(dataloaders["train"])
         print('Train Loss: {:.4f}'.format(epoch_loss))
 
-        print()
-
-    time_elapsed = time.time() - since
-    print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
-    print('Best val loss: {:4f}'.format(best_auc))
-
-    # model.load_state_dict(best_model_wts)
 
 def eval_model(model, tokenizer, dataloaders, loss_criterion, writer, device=Config.device):
     datatype = "valid" if "valid" in dataloaders else "train"

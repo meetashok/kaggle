@@ -13,7 +13,7 @@ class Config:
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print(f"Running on device = {device}")
 
-    batch_size = 16
+    batch_size = 32
     lr = 0.1
     num_epochs = 10
 
