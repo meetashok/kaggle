@@ -48,7 +48,6 @@ if __name__ == "__main__":
 
     model_params = {
         "tokenizer": tokenizer,
-        "dataloaders": dataloaders,
         "modelsdir": Config.modelsdir,
         "loss_criterion": loss_criterion,
         "optimizer": optimizer,
@@ -58,7 +57,21 @@ if __name__ == "__main__":
         "verbose": Config.verbose
     }
 
+    metrics = {
+        "train": { "loss": [], "jaccard": [] },
+        "valid": { "loss": [], "jaccard": [] },
+    }
+
     for epoch in range(Config.num_epochs):
         print('Epoch {}/{}'.format(epoch+1, Config.num_epochs))
-        train_model(model, model_params)
-        eval_model(model, dataloaders)
+        train_model(model, dataloaders["train"], model_params)
+        
+        print("Evaluating training data")
+        loss, jaccard = eval_model(model, dataloaders["train"], model_params)
+        metrics["train"]["loss"] += [loss]
+        metrics["train"]["jaccard"] += [jaccard]
+
+        print("Evaluating validation data")
+        loss, jaccard = eval_model(model, dataloaders["valid"], model_params)
+        metrics["valid"]["loss"] += [loss]
+        metrics["valid"]["jaccard"] += [jaccard]

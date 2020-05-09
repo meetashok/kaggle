@@ -54,11 +54,10 @@ def get_selected_text(ids, token_start, token_end, tokenizer):
     selected_text = tokenizer.decode(selected_ids).strip()
     return selected_text
 
-def train_model(model, model_params):
+def train_model(model, dataloader, model_params):
     model.train()
 
     tokenizer = model_params.get("tokenizer")
-    dataloaders = model_params.get("dataloaders")
     modelsdir = model_params.get("modelsdir")
     loss_criterion = model_params.get("loss_criterion")
     optimizer = model_params.get("optimizer")
@@ -68,7 +67,7 @@ def train_model(model, model_params):
         
     running_loss = 0.0
 
-    for i, data in enumerate(dataloaders["train"]):
+    for i, data in enumerate(dataloader):
         # print(model.linear.weight)       
         ids = data.get("ids")
         attention_mask = data.get("attention_mask")
@@ -125,27 +124,22 @@ def train_model(model, model_params):
         running_loss += loss.item()  * attention_mask.size(0)
 
     
-    epoch_loss = running_loss / len(dataloaders["train"])
+    epoch_loss = running_loss / len(dataloader)
     print('Train Loss: {:.4f}'.format(epoch_loss))
 
 
-def eval_model(model, model_params):
+def eval_model(model, dataloader, model_params):
     tokenizer = model_params.get("tokenizer")
-    dataloaders = model_params.get("dataloaders")
     loss_criterion = model_params.get("loss_criterion")
     writer = model_params.get("writer")
     device = model_params.get("device")
-
-
-    datatype = "valid" if "valid" in dataloaders else "train"
-    print(f"Evaluating model on {datatype} data")
 
     running_loss = 0.0
     jaccard_score = 0.0
     total_count = 0
     count_incorrect = 0
 
-    for _, data in enumerate(dataloaders[datatype]):
+    for _, data in enumerate(dataloader):
         model.eval()
         
         ids = data.get("ids")
@@ -196,3 +190,5 @@ def eval_model(model, model_params):
     jaccard_avg = jaccard_score / total_count
 
     print(f"Loss = {loss_avg:7.4f}, Jaccard = {jaccard_avg:6.4f}, Batch count: {total_count:4,}, Batch incorrect: {count_incorrect:4,}")
+
+    return (loss_avg, jaccard_avg)
