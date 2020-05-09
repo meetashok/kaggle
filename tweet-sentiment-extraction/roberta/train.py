@@ -9,6 +9,8 @@ from torch.utils import tensorboard
 from transformers import AdamW
 from torch.optim import lr_scheduler
 from torch.utils.data import DataLoader
+import os
+import torch
 
 def run(fold):
     print("-"*20)
@@ -28,7 +30,7 @@ def run(fold):
     model = model.to(Config.device)  
     
     # preparing data 
-    data, test, _ = read_data(Config.frac)
+    data, _, _ = read_data(Config.frac)
 
     train = data.query("fold != @Config.fold").reset_index(drop=True)
     valid = data.query("fold == @Config.fold").reset_index(drop=True)
@@ -54,7 +56,6 @@ def run(fold):
 
     model_params = {
         "tokenizer": tokenizer,
-        "modelsdir": Config.modelsdir,
         "loss_criterion": loss_criterion,
         "optimizer": optimizer,
         "scheduler": scheduler,
@@ -62,6 +63,8 @@ def run(fold):
         "device": Config.device,
         "verbose": Config.verbose
     }
+
+    os.mkdir(os.path.join(Config.modelsdir, Config.suffix))
 
     for epoch in range(Config.num_epochs):
         print("-"*20)
@@ -77,6 +80,10 @@ def run(fold):
         writer.add_scalars(f"fold={fold}/loss",    {"train": train_loss, "valid": valid_loss}, global_step=epoch+1)
         writer.add_scalars(f"fold={fold}/jaccard", {"train": train_jaccard, "valid": valid_jaccard}, global_step=epoch+1)
 
+    print("Saving model...")
+    modeloutput = os.path.join(Config.modelsdir, Config.suffix, f"fold{fold}.bin")
+    torch.save({"model_state_dict": model.state_dict()}, modeloutput)
+
 if __name__ == "__main__":
-    for fold in range(1, 6):
+    for fold in range(1, 3):
         run(fold)

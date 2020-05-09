@@ -1,10 +1,11 @@
 from transformers import RobertaConfig
 import torch
 import datetime
+import os
 
 class Config:
     datadir = "../data"
-    modelsdir = "../models"
+    
     roberta_vocab = "../pretrained/roberta-base-vocab.json"
     roberta_merges = "../pretrained/roberta-base-merges.txt"
     roberta_config = RobertaConfig.from_pretrained("roberta-base", output_hidden_states=True)
@@ -15,12 +16,17 @@ class Config:
 
     batch_size = 32
     lr = 3e-5
-    num_epochs = 3
+    num_epochs = 1
     verbose = False
 
     frac = 0.001
 
     fold = 1
 
-    # helpers
-    suffix = datetime.datetime.now().strftime("%Y.%m.%d.%H%M%S")
+    # saving models
+    modelsdir = "../models"
+    suffix = datetime.datetime.now().strftime("%Y.%m.%d.%H.%M")
+    
+    if not os.path.exists(os.path.join(modelsdir, suffix)):
+        os.mkdir(os.path.join(modelsdir, suffix))
+    

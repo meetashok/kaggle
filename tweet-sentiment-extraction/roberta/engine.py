@@ -17,6 +17,7 @@ from model import initialize_tokenizer
 from transformers import AdamW
 from torch.utils import tensorboard
 import numpy as np
+import torch
 
 def loss_criterion(start_logits, end_logits, start, end):
     loss_fn = nn.CrossEntropyLoss()
