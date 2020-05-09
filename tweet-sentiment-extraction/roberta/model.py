@@ -20,9 +20,9 @@ def initialize_tokenizer(vocab_file, merges_file):
 
     return tokenizer
 
-class TweetModel(transformers.BertModel):
+class TweetModel(nn.Module):
     def __init__(self, config):
-        super(TweetModel, self).__init__(config)
+        super(TweetModel, self).__init__()
         print("Importing model...")
         self.roberta = transformers.RobertaModel.from_pretrained("roberta-base", config=config)
         self.dropout = nn.Dropout(0.1)

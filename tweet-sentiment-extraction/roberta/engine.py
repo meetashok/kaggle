@@ -75,28 +75,6 @@ def train_model(model, model_params):
         
         running_loss = 0.0
 
-<<<<<<< HEAD
-        for _, data in enumerate(dataloaders["train"]):
-            model.train()
-            
-            (ids, 
-            attention_mask, 
-            token_type_ids, 
-            token_start, 
-            token_end, 
-            tweet, 
-            selected_text, 
-            sentiment) = (
-                          data["ids"], 
-                          data["attention_mask"], 
-                          data["token_type_ids"],
-                          data["token_start"], 
-                          data["token_end"], 
-                          data["tweet"],
-                          data["selected_text"],
-                          data["sentiment"]
-                          )
-=======
         for i, data in enumerate(dataloaders["train"]):
             # print(model.linear.weight)       
             ids = data.get("ids")
@@ -107,18 +85,12 @@ def train_model(model, model_params):
             tweet = data.get("tweet")
             selected_text = data.get("selected_text")
             sentiment = data.get("sentiment")
->>>>>>> 28cb2b788682130dc1f20473a7016f5d468db5e7
             
             ids = ids.to(device)
             attention_mask = attention_mask.to(device)
             token_type_ids = token_type_ids.to(device)
             token_start = token_start.to(device)
             token_end = token_end.to(device)
-<<<<<<< HEAD
-            
-            optimizer.zero_grad()
-=======
->>>>>>> 28cb2b788682130dc1f20473a7016f5d468db5e7
 
             with torch.set_grad_enabled(True):
                 start_logits, end_logits = model(ids, attention_mask, token_type_ids)
@@ -152,21 +124,13 @@ def train_model(model, model_params):
 
                 # writer.add_scalar("loss/train", loss, global_step=global_step)
 
-<<<<<<< HEAD
-            running_loss += loss.item() * attention_mask.size(0)
-
-        eval_model(model, tokenizer, dataloaders, loss_criterion, writer)
-=======
             running_loss += loss.item()  * attention_mask.size(0)
 
         eval_model(model, model_params)
->>>>>>> 28cb2b788682130dc1f20473a7016f5d468db5e7
         scheduler.step()
         epoch_loss = running_loss / len(dataloaders["train"])
         print('Train Loss: {:.4f}'.format(epoch_loss))
 
-<<<<<<< HEAD
-=======
 
 def eval_model(model, model_params):
     tokenizer = model_params.get("tokenizer")
@@ -176,7 +140,6 @@ def eval_model(model, model_params):
     num_epochs = model_params.get("num_epochs")
     device = model_params.get("device")
 
->>>>>>> 28cb2b788682130dc1f20473a7016f5d468db5e7
 
     datatype = "valid" if "valid" in dataloaders else "train"
     print(f"Evaluating model on {datatype} data")
