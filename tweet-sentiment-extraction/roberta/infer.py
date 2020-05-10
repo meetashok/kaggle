@@ -32,7 +32,7 @@ def infer_model(modelrun):
         print(f"Running {modelname}...")
         model = TweetModel2(Config.roberta_config)
 
-        checkpoint = torch.load(os.path.join(modelpath, modelname))
+        checkpoint = torch.load(os.path.join(modelpath, modelname), map_location=device)
         model.load_state_dict(checkpoint["model_state_dict"])
         model.to(device)
         
@@ -83,4 +83,4 @@ def infer_model(modelrun):
     pd.DataFrame(dataframe).to_csv("sample_submission.csv", index=False, quoting=csv.QUOTE_ALL)
     
 if __name__ == "__main__":
-    infer_model(modelrun="2020.05.09.16.54")
+    infer_model(modelrun="roberta1")
