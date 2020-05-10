@@ -1,5 +1,5 @@
 from config import Config
-from model import TweetModel
+from model import TweetModel, TweetModel2
 import torch 
 import os
 from utils import read_data
@@ -30,7 +30,7 @@ def infer_model(modelrun):
 
     for m, modelname in enumerate(models):
         print(f"Running {modelname}...")
-        model = TweetModel(Config.roberta_config)
+        model = TweetModel2(Config.roberta_config)
 
         checkpoint = torch.load(os.path.join(modelpath, modelname))
         model.load_state_dict(checkpoint["model_state_dict"])
@@ -83,4 +83,4 @@ def infer_model(modelrun):
     pd.DataFrame(dataframe).to_csv("sample_submission.csv", index=False, quoting=csv.QUOTE_ALL)
     
 if __name__ == "__main__":
-    infer_model(modelrun="2020.05.09.10.54")
+    infer_model(modelrun="2020.05.09.16.54")
