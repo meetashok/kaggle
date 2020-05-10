@@ -10,38 +10,37 @@ from torch.utils.data import DataLoader
 import pandas as pd
 from config import Config
 import csv
+from tqdm import tqdm
+import numpy as np 
 
-def infer_model(modelrun):
+def infer_model(modelrun, modelclass, inferdata):
     device = Config.device
     modelpath = os.path.join(Config.modelsdir, modelrun)
     models = [modelname for modelname in os.listdir(modelpath) if modelname[-4:] == ".bin"]
 
-    _, test, _ = read_data()
-    test["selected_text"] = test.text
-
     tokenizer = initialize_tokenizer(Config.roberta_vocab, Config.roberta_merges)
-    test_dataset = TweetData(test, tokenizer, Config.max_len)
+    dataset = TweetData(inferdata, tokenizer, Config.max_len)
 
-    start_tokens_all = torch.zeros((len(models), len(test), Config.max_len))
-    end_tokens_all = torch.zeros((len(models), len(test), Config.max_len))
-    ids_all = torch.zeros((len(test), Config.max_len), dtype=torch.long)
+    start_tokens_all = torch.zeros((len(models), len(inferdata), Config.max_len))
+    end_tokens_all = torch.zeros((len(models), len(inferdata), Config.max_len))
+    ids_all = torch.zeros((len(inferdata), Config.max_len), dtype=torch.long)
     textIDs = []
     tweets = []
 
     for m, modelname in enumerate(models):
         print(f"Running {modelname}...")
-        model = TweetModel2(Config.roberta_config)
+        model = modelclass(Config.roberta_config)
 
         checkpoint = torch.load(os.path.join(modelpath, modelname), map_location=device)
         model.load_state_dict(checkpoint["model_state_dict"])
         model.to(device)
         
-        dataloader = DataLoader(test_dataset, batch_size=Config.batch_size, shuffle=False)
+        dataloader = DataLoader(dataset, batch_size=Config.batch_size, shuffle=False)
 
-        start_tokens = torch.zeros((len(test), Config.max_len), dtype=torch.float32)
+        start_tokens = torch.zeros((len(inferdata), Config.max_len), dtype=torch.float32)
         end_tokens = torch.zeros_like(start_tokens)
 
-        for i, data in enumerate(dataloader):
+        for i, data in tqdm(enumerate(dataloader)):
             model.eval()
             
             ids = data.get("ids")
@@ -57,12 +56,15 @@ def infer_model(modelrun):
             
             with torch.set_grad_enabled(False):
                 start_logits, end_logits = model(ids, attention_mask, token_type_ids)
-            
-                start_tokens[i*Config.batch_size:(i+1)*Config.batch_size, :] = start_logits
-                end_tokens[i*Config.batch_size:(i+1)*Config.batch_size, :] = end_logits
+
+                start_index = i*Config.batch_size
+                end_index = (i+1)*Config.batch_size
+                
+                start_tokens[start_index:end_index, :] = start_logits
+                end_tokens[start_index:end_index, :] = end_logits
             
             if m == 0:
-                ids_all[i*Config.batch_size:(i+1)*Config.batch_size, :] = ids
+                ids_all[start_index:end_index, :] = ids
                 textIDs.extend(textID)
                 tweets.extend(tweet)
         
@@ -74,13 +76,21 @@ def infer_model(modelrun):
     ids_all = ids_all.cpu().detach().numpy()
 
     dataframe = {"textID": [], "selected_text": []}    
-    for i in range(len(test)):
+    for i in range(len(inferdata)):
         selected_text = get_selected_text(ids_all[i], tweets[i], token_start_pred[i], token_end_pred[i], tokenizer)
         dataframe["textID"] += [textIDs[i]]
         dataframe["selected_text"] += [selected_text]
 
     print("Extracting submission...")
-    pd.DataFrame(dataframe).to_csv("sample_submission.csv", index=False, quoting=csv.QUOTE_ALL)
+    pd.DataFrame(dataframe).to_csv(f"submission_{Config.suffix}.csv", index=False, quoting=csv.QUOTE_ALL)
     
 if __name__ == "__main__":
-    infer_model(modelrun="roberta1")
+    torch.manual_seed(0)
+    np.random.seed(0)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+    train, test, _ = read_data()
+    test["selected_text"] = test.text
+
+    infer_model(modelrun="roberta-simple", modelclass=TweetModel, inferdata=train)

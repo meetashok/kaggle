@@ -12,10 +12,11 @@ from torch.optim import lr_scheduler
 from torch.utils.data import DataLoader
 import os
 import torch
+import numpy as np
 
 def run(fold):
     # loading and setting up model, optimizer
-    model = TweetModel2(Config.roberta_config)
+    model = TweetModel(Config.roberta_config)
     param_optimizer = list(model.named_parameters())
     no_decay = ["bias", "LayerNorm.bias", "LayerNorm.weight"]
     optimizer_parameters = [
@@ -80,7 +81,16 @@ def run(fold):
     torch.save({"model_state_dict": model.state_dict()}, modeloutput)
 
 if __name__ == "__main__":
+    torch.manual_seed(0)
+    np.random.seed(0)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+    if os.path.exists(os.path.join(Config.modelsdir, Config.suffix)):
+        os.removedirs(os.path.join(Config.modelsdir, Config.suffix))
+    
     os.mkdir(os.path.join(Config.modelsdir, Config.suffix))
+
     for fold in range(1, Config.nfolds+1):
         print("-"*20)
         print(f"Running fold = {fold}")

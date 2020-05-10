@@ -18,6 +18,7 @@ from transformers import AdamW
 from torch.utils import tensorboard
 import numpy as np
 import torch
+from tqdm import tqdm
 
 def loss_criterion(start_logits, end_logits, start, end):
     loss_fn = nn.CrossEntropyLoss()
@@ -28,18 +29,26 @@ def loss_criterion(start_logits, end_logits, start, end):
     return loss
 
 def batch_jaccard_similarity(ids, token_start_pred, token_end_pred, tweet, selected_text, sentiment, tokenizer, th=3):
-    similarities = 0
+    jaccards = {"positive": 0, "negative": 0, "neutral": 0}
+    counts =  {"positive": 0, "negative": 0, "neutral": 0}
 
     for i in range(len(sentiment)):
         if (sentiment[i] == "neutral") or len(tweet[i].split()) <= th:
-            pred_selected_text = tweet[i]
+            # pred_selected_text = tweet[i]
+            pred_selected_text = get_selected_text(ids[i], tweet[i], token_start_pred[i], token_end_pred[i], tokenizer)
         else:
             pred_selected_text = get_selected_text(ids[i], tweet[i], token_start_pred[i], token_end_pred[i], tokenizer)
 
-        similarity = jaccard_similarity(pred_selected_text, selected_text[i])
-        similarities += similarity
+        jaccard = jaccard_similarity(pred_selected_text, selected_text[i])
+        
+        # print(f"Pred selected text: {pred_selected_text}")
+        # print(f"Selected text: {selected_text[i]}")
+        # print(f"Jaccard score: {jaccard}")
+
+        jaccards[sentiment[i]] += jaccard
+        counts[sentiment[i]] += 1
     
-    return similarities / len(sentiment), len(sentiment)
+    return jaccards, counts
 
 def get_selected_text(ids, tweet, token_start, token_end, tokenizer):
     selected_ids = ids[token_start: token_end+1]
@@ -66,7 +75,7 @@ def train_model(model, dataloader, model_params):
         
     running_loss = 0.0
 
-    for i, data in enumerate(dataloader):
+    for i, data in tqdm(enumerate(dataloader)):
         # print(model.linear.weight)       
         ids = data.get("ids")
         attention_mask = data.get("attention_mask")
@@ -106,7 +115,7 @@ def train_model(model, dataloader, model_params):
 
                 ids = ids.cpu().detach().numpy()
 
-                batch_jaccard, batch_count = batch_jaccard_similarity(ids, 
+                batch_jaccard = batch_jaccard_similarity(ids, 
                                             token_start_pred, 
                                             token_end_pred, 
                                             tweet, 
@@ -132,11 +141,10 @@ def eval_model(model, dataloader, model_params):
     device = model_params.get("device")
 
     running_loss = 0.0
-    jaccard_score = 0.0
-    total_count = 0
-    count_incorrect = 0
+    counts = {"positive": 0, "negative": 0, "neutral": 0, "total": 0}
+    jaccards = {"positive": 0, "negative": 0, "neutral": 0, "total": 0}
 
-    for _, data in enumerate(dataloader):
+    for _, data in tqdm(enumerate(dataloader)):
         model.eval()
         
         ids = data.get("ids")
@@ -171,7 +179,7 @@ def eval_model(model, dataloader, model_params):
 
             ids = ids.cpu().detach().numpy()
 
-            batch_jaccard, total_count_batch  = batch_jaccard_similarity(ids, 
+            batch_jaccard, batch_counts  = batch_jaccard_similarity(ids, 
                                         token_start_pred, 
                                         token_end_pred, 
                                         tweet, 
@@ -179,12 +187,16 @@ def eval_model(model, dataloader, model_params):
                                         sentiment, 
                                         tokenizer)
             
-            jaccard_score += batch_jaccard * total_count_batch
-            total_count += total_count_batch
+            for sent in ["positive", "negative", "neutral"]:
+                jaccards[sent] += batch_jaccard[sent]
+                counts[sent] += batch_counts[sent]
+
+    total_jaccard = jaccards["positive"] + jaccards["negative"] + jaccards["neutral"]
+    total_count = counts["positive"] + counts["negative"] + counts["neutral"]
 
     loss_avg = running_loss / total_count
-    jaccard_avg = jaccard_score / total_count
+    jaccard_avg = total_jaccard / total_count
 
-    print(f"Loss = {loss_avg:7.4f}, Jaccard = {jaccard_avg:6.4f}")
+    print(f"Loss = {loss_avg:7.4f}, Jaccard = {jaccard_avg:6.4f}, Positive: {jaccards['positive'] / counts['positive']:6.4f}, Negative: {jaccards['negative'] / counts['negative']:6.4f}, Neutral: {jaccards['neutral']/counts['neutral']:6.4f}")
 
     return (loss_avg, jaccard_avg)

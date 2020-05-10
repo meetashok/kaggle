@@ -25,7 +25,7 @@ class TweetModel(nn.Module):
         super(TweetModel, self).__init__()
         print("Importing model...")
         self.roberta = transformers.RobertaModel.from_pretrained("roberta-base", config=config)
-        self.dropout = nn.Dropout(0.3)
+        self.dropout = nn.Dropout(0.5)
         self.linear = nn.Linear(config.hidden_size*2, 2)
         nn.init.normal_(self.linear.weight, std=0.02)
 
@@ -63,17 +63,28 @@ class TweetModel2(nn.Module):
         out1, out2 = out[-1], out[-2]
         out1, out2 = out1.transpose(1, 2), out2.transpose(1, 2)
 
+
+        out1 = self.dropout(out1)
+        
         out1 = self.conv1(out1)
         out1 = nn.ReLU()(out1)
+        out1 = self.dropout(out1)
+
         out1 = self.conv2(out1)
         out1 = nn.ReLU()(out1)
+        
         out1 = out1.transpose(1, 2)
         out1 = self.linear(out1)
 
+        out2 = self.dropout(out2)
+        
         out2 = self.conv1(out2)
         out2 = nn.ReLU()(out2)
+        out2 = self.dropout(out2)
+        
         out2 = self.conv2(out2)
         out2 = nn.ReLU()(out2)
+        
         out2 = out2.transpose(1, 2)
         out2 = self.linear(out2)
         
