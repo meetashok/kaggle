@@ -11,13 +11,12 @@ class Config:
     roberta_config_file = "../pretrained/roberta-base-config.json"
     roberta_config = RobertaConfig.from_json_file(roberta_config_file)
     roberta_config.output_hidden_states = True
-    # roberta_config = RobertaConfig.from_pretrained("roberta-base", output_hidden_states=True)
     
     max_len = 96
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print(f"Running on device = {device}")
 
-    batch_size = 32
+    batch_size = 48
     lr = 3e-5
     num_epochs = 5
     verbose = False
