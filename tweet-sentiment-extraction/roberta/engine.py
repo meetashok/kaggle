@@ -198,5 +198,6 @@ def eval_model(model, dataloader, model_params):
     jaccard_avg = total_jaccard / total_count
 
     print(f"Loss = {loss_avg:7.4f}, Jaccard = {jaccard_avg:6.4f}, Positive: {jaccards['positive'] / counts['positive']:6.4f}, Negative: {jaccards['negative'] / counts['negative']:6.4f}, Neutral: {jaccards['neutral']/counts['neutral']:6.4f}")
+    # print(f"Loss = {loss_avg:7.4f}, Jaccard = {jaccard_avg:6.4f}, Positive: {jaccards['positive'] / counts['positive']:6.4f}")
 
     return (loss_avg, jaccard_avg)

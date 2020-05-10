@@ -71,15 +71,36 @@ def infer_model(modelrun, modelclass, inferdata):
         start_tokens_all[m,:,:] = start_tokens
         end_tokens_all[m,:,:] = end_tokens
 
-    token_start_pred = torch.argmax(torch.mean(start_tokens_all, dim=0), dim=-1).cpu().detach().numpy()
-    token_end_pred = torch.argmax(torch.mean(end_tokens_all, dim=0), dim=-1).cpu().detach().numpy()
+    # getting mean of all five folds
+    token_start_mean = torch.mean(start_tokens_all, dim=0)
+    token_end_mean = torch.mean(end_tokens_all, dim=0)
+
+    # doing a softmax on the folds
+    token_start_softmax = torch.softmax(token_start_mean, dim=1)
+    token_end_softmax = torch.softmax(token_end_mean, dim=1)
+
+    # getting the max values and index fo max_value
+    token_start_values, token_start_pred = torch.max(token_start_mean, dim=1)
+    token_end_values, token_end_pred = torch.max(token_end_mean, dim=1)
+
+    # bringing data to cpu
+    token_start_values = token_start_values.cpu().detach().numpy()
+    token_start_pred = token_start_pred.cpu().detach().numpy()
+    token_end_values = token_end_values.cpu().detach().numpy()
+    token_end_pred = token_end_pred.cpu().detach().numpy()
+    
     ids_all = ids_all.cpu().detach().numpy()
 
-    dataframe = {"textID": [], "selected_text": []}    
+    dataframe = {"textID": [], "selected_text": [], "start_token": [], "start_softmax": [], "end_token": [], "end_softmax": []}
     for i in range(len(inferdata)):
         selected_text = get_selected_text(ids_all[i], tweets[i], token_start_pred[i], token_end_pred[i], tokenizer)
         dataframe["textID"] += [textIDs[i]]
         dataframe["selected_text"] += [selected_text]
+        dataframe["start_token"] += [token_start_pred[i]]
+        dataframe["start_softmax"] += [token_start_values[i]]
+        dataframe["end_token"] += [token_end_pred[i]]
+        dataframe["end_softmax"] += [token_end_values[i]]
+
 
     print("Extracting submission...")
     pd.DataFrame(dataframe).to_csv(f"submission_{Config.suffix}.csv", index=False, quoting=csv.QUOTE_ALL)

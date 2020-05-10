@@ -27,6 +27,7 @@ def kfold_indices(dataframe, n_splits=5):
 def read_data(frac=1):
     print("Reading data...")
     train = pd.read_csv(os.path.join(Config.datadir, "train.csv")).sample(frac=frac).dropna().reset_index(drop=True)
+    # train = train.query("sentiment == 'positive'")
     train = kfold_indices(train)
 
     test = pd.read_csv(os.path.join(Config.datadir, "test.csv"))
