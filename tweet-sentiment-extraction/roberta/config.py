@@ -18,11 +18,11 @@ class Config:
 
     batch_size = 32
     lr = 3e-5
-    num_epochs = 5
+    num_epochs = 10
     verbose = False
-    nfolds = 5
+    nfolds = 2
 
-    frac = 1
+    frac = 0.001
 
     # saving models
     modelsdir = "../models"

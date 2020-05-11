@@ -17,7 +17,7 @@ import logging
 
 def run(fold):
     # loading and setting up model, optimizer
-    model = TweetModel2(Config.roberta_config)
+    model = TweetModel(Config.roberta_config)
     param_optimizer = list(model.named_parameters())
     no_decay = ["bias", "LayerNorm.bias", "LayerNorm.weight"]
     optimizer_parameters = [
@@ -63,7 +63,8 @@ def run(fold):
         "verbose": Config.verbose
     }
 
-    
+    valid_jaccard_best = 0
+    patience = 0
 
     for epoch in range(Config.num_epochs):
         print("-"*20)
@@ -79,9 +80,19 @@ def run(fold):
         writer.add_scalars(f"fold={fold}/loss",    {"train": train_loss, "valid": valid_loss}, global_step=epoch+1)
         writer.add_scalars(f"fold={fold}/jaccard", {"train": train_jaccard, "valid": valid_jaccard}, global_step=epoch+1)
 
-    print("Saving model...")
-    modeloutput = os.path.join(Config.modelsdir, Config.suffix, f"fold{fold}.bin")
-    torch.save({"model_state_dict": model.state_dict()}, modeloutput)
+        if valid_jaccard > valid_jaccard_best:
+            valid_jaccard_best = valid_jaccard
+            patience = 0
+
+            print("Saving model...")
+            modeloutput = os.path.join(Config.modelsdir, Config.suffix, f"fold{fold}.bin")
+            torch.save({"model_state_dict": model.state_dict()}, modeloutput)
+        else:
+            print("Jaccard didn't improve...")
+            patience += 1
+            if patience == 2:
+                print(f"Jaccard didn't improve for 2 iterations, breaking after {epoch+1} epochs")
+                break
 
     return valid_loss, valid_jaccard
 
