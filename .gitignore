@@ -14,6 +14,7 @@ tweet-sentiment-extraction/models*
 tweet-sentiment-extraction/.DS_Store
 
 tweet-sentiment-extraction/*/runs
+tweet-sentiment-extraction/*/submission*.csv
 
 ### wheat-detection
 wheat-detection/data

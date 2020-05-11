@@ -80,14 +80,48 @@ def infer_model(modelrun, modelclass, inferdata):
     token_end_softmax = torch.softmax(token_end_mean, dim=1)
 
     # getting the max values and index fo max_value
-    token_start_values, token_start_pred = torch.max(token_start_mean, dim=1)
-    token_end_values, token_end_pred = torch.max(token_end_mean, dim=1)
+    start_sorted, start_indices = torch.sort(token_start_softmax, dim=1, descending=True)
+    end_sorted, end_indices = torch.sort(token_end_softmax, dim=1, descending=True)
+
+    start_sorted = start_sorted.cpu().detach().numpy()
+    start_indices = start_indices.cpu().detach().numpy()
+    end_sorted = end_sorted.cpu().detach().numpy()
+    end_indices = end_indices.cpu().detach().numpy()
+
+    start_conditions = (start_sorted[:,0] <= 0.6) & (start_sorted[:,1] >=0.3) & (start_indices[:,0] - start_indices[:,1] == 1)
+    end_conditions = (end_sorted[:,0] <= 0.6) & (end_sorted[:,1] >=0.3) & (end_indices[:,1] - end_indices[:,0] == 1)
+
+    token_start_pred = start_indices[:, 0]
+    token_end_pred = end_indices[:, 0]
+
+
+    # token_start_values = []
+    # token_start_pred = []
+    # token_end_values = []
+    # token_end_pred = []
+
+    # for i in range(len(start_conditions)):
+    #     if start_conditions[i]:
+    #         print(f"Start condition, {start_sorted[i,1], start_indices[i,1]}")
+    #         token_start_values += [start_sorted[i,1]]
+    #         token_start_pred += [start_indices[i,1]]
+    #     else:
+    #         token_start_values += [start_sorted[i,0]]
+    #         token_start_pred += [start_indices[i,0]]
+
+    #     if end_conditions[i]:
+    #         print(f"End condition, {end_sorted[i,1], end_indices[i,1]}")
+    #         token_end_values += [end_sorted[i,1]]
+    #         token_end_pred += [end_indices[i,1]]
+    #     else:
+    #         token_end_values += [end_sorted[i,0]]
+    #         token_end_pred += [end_indices[i,0]]
 
     # bringing data to cpu
-    token_start_values = token_start_values.cpu().detach().numpy()
-    token_start_pred = token_start_pred.cpu().detach().numpy()
-    token_end_values = token_end_values.cpu().detach().numpy()
-    token_end_pred = token_end_pred.cpu().detach().numpy()
+    # token_start_values = token_start_values.cpu().detach().numpy()
+    # token_start_pred = token_start_pred.cpu().detach().numpy()
+    # token_end_values = token_end_values.cpu().detach().numpy()
+    # token_end_pred = token_end_pred.cpu().detach().numpy()
     
     ids_all = ids_all.cpu().detach().numpy()
 
@@ -96,10 +130,10 @@ def infer_model(modelrun, modelclass, inferdata):
         selected_text = get_selected_text(ids_all[i], tweets[i], token_start_pred[i], token_end_pred[i], tokenizer)
         dataframe["textID"] += [textIDs[i]]
         dataframe["selected_text"] += [selected_text]
-        dataframe["start_token"] += [token_start_pred[i]]
-        dataframe["start_softmax"] += [token_start_values[i]]
-        dataframe["end_token"] += [token_end_pred[i]]
-        dataframe["end_softmax"] += [token_end_values[i]]
+        # dataframe["start_token"] += [token_start_pred[i]]
+        # dataframe["start_softmax"] += [token_start_values[i]]
+        # dataframe["end_token"] += [token_end_pred[i]]
+        # dataframe["end_softmax"] += [token_end_values[i]]
 
 
     print("Extracting submission...")

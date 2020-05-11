@@ -21,11 +21,14 @@ import torch
 from tqdm import tqdm
 
 def loss_criterion(start_logits, end_logits, start, end):
+    weight = 0.6
     loss_fn = nn.CrossEntropyLoss()
+    ones = torch.ones_like(start).to(Config.device)
 
-    start_loss = loss_fn(start_logits, start)
-    end_loss = loss_fn(end_logits, end)
-    loss = torch.add(start_loss, end_loss)
+    start_loss = weight*loss_fn(start_logits, start) + (1-weight)/2*loss_fn(start_logits, torch.min(start+1, Config.max_len*ones)) + (1-weight)/2*loss_fn(start_logits, torch.max(start-1, 4*ones)) 
+    end_loss = weight*loss_fn(end_logits, end) + (1-weight)/2*loss_fn(end_logits, torch.min(end+1, Config.max_len*ones)) + (1-weight)/2*loss_fn(end_logits, torch.max(end-1, 4*ones)) 
+
+    loss = torch.add(start_loss, end_loss) 
     return loss
 
 def batch_jaccard_similarity(ids, token_start_pred, token_end_pred, tweet, selected_text, sentiment, tokenizer, th=3):

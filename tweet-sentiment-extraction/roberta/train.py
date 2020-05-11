@@ -13,10 +13,11 @@ from torch.utils.data import DataLoader
 import os
 import torch
 import numpy as np
+import logging
 
 def run(fold):
     # loading and setting up model, optimizer
-    model = TweetModel(Config.roberta_config)
+    model = TweetModel2(Config.roberta_config)
     param_optimizer = list(model.named_parameters())
     no_decay = ["bias", "LayerNorm.bias", "LayerNorm.weight"]
     optimizer_parameters = [
@@ -62,6 +63,8 @@ def run(fold):
         "verbose": Config.verbose
     }
 
+    
+
     for epoch in range(Config.num_epochs):
         print("-"*20)
         print('Epoch {}/{}'.format(epoch+1, Config.num_epochs))
@@ -80,6 +83,8 @@ def run(fold):
     modeloutput = os.path.join(Config.modelsdir, Config.suffix, f"fold{fold}.bin")
     torch.save({"model_state_dict": model.state_dict()}, modeloutput)
 
+    return valid_loss, valid_jaccard
+
 if __name__ == "__main__":
     torch.manual_seed(0)
     np.random.seed(0)
@@ -91,9 +96,15 @@ if __name__ == "__main__":
     
     os.mkdir(os.path.join(Config.modelsdir, Config.suffix))
 
+    cv_loss, cv_jaccard = [], []
+    
     for fold in range(1, Config.nfolds+1):
         print("-"*20)
         print(f"Running fold = {fold}")
         print("-"*20)
 
-        run(fold)
+        loss, jaccard = run(fold)
+        cv_loss += [loss]
+        cv_jaccard += [jaccard]
+
+    print(f"CV loss = {np.mean(cv_loss):6.4f}, CV Jaccard = {np.mean(cv_jaccard):6.4f}")
