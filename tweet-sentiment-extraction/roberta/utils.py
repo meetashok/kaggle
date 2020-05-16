@@ -8,7 +8,6 @@ from config import Config
 from sklearn.model_selection import StratifiedKFold
 import numpy as np
 
-
 def kfold_indices(dataframe, n_splits=5):
     kfold = StratifiedKFold(n_splits=5, shuffle=True, random_state=2)
     df_fold = {"index": [], "fold": []}
