@@ -8,9 +8,14 @@ from config import Config
 from sklearn.model_selection import StratifiedKFold
 import numpy as np
 
+import logging
 
-def kfold_indices(dataframe, n_splits=5):
-    kfold = StratifiedKFold(n_splits=5, shuffle=True, random_state=2)
+def logger(filename="training.log"):
+    logging.basicConfig(filename=filename, filemode="w+")
+
+
+def kfold_indices(dataframe, n_splits):
+    kfold = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=2)
     df_fold = {"index": [], "fold": []}
 
     splits = kfold.split(np.arange(dataframe.index.size), y=dataframe.sentiment)
@@ -28,7 +33,7 @@ def read_data(frac=1):
     print("Reading data...")
     train = pd.read_csv(os.path.join(Config.datadir, "train.csv")).sample(frac=frac).dropna().reset_index(drop=True)
     # train = train.query("sentiment == 'positive'")
-    train = kfold_indices(train)
+    train = kfold_indices(train, n_splits=Config.nfolds)
 
     test = pd.read_csv(os.path.join(Config.datadir, "test.csv"))
     sample_submission = pd.read_csv(os.path.join(Config.datadir, "sample_submission.csv"))

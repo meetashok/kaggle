@@ -49,7 +49,7 @@ class TweetModel2(nn.Module):
         super(TweetModel2, self).__init__()
         print("Importing model...")
         self.roberta = transformers.RobertaModel.from_pretrained("roberta-base", config=config)
-        self.dropout = nn.Dropout(0.4)
+        self.dropout = nn.Dropout(0.3)
         self.conv1 = nn.Conv1d(config.hidden_size, 32, 3, padding=1)
         self.conv2 = nn.Conv1d(32, 64, 3, padding=1)
         self.linear = nn.Linear(64, 1)

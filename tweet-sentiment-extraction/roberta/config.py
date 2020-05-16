@@ -18,13 +18,13 @@ class Config:
 
     batch_size = 32
     lr = 3e-5
-    num_epochs = 10
+    num_epochs = 3
     verbose = False
-    nfolds = 2
+    nfolds = 10
 
-    frac = 0.001
+    frac = 1
 
     # saving models
     modelsdir = "../models"
-    suffix = datetime.datetime.now().strftime("%Y.%m.%d.%H.%M")
+    suffix = datetime.datetime.now().strftime("%Y.%m.%d_%H.%M")
     

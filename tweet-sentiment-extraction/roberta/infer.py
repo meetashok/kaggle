@@ -137,7 +137,7 @@ def infer_model(modelrun, modelclass, inferdata):
 
 
     print("Extracting submission...")
-    pd.DataFrame(dataframe).to_csv(f"submission_{Config.suffix}.csv", index=False, quoting=csv.QUOTE_ALL)
+    pd.DataFrame(dataframe).to_csv(f"../submissions/submission_{Config.suffix}.csv", index=False, quoting=csv.QUOTE_ALL)
     
 if __name__ == "__main__":
     torch.manual_seed(0)

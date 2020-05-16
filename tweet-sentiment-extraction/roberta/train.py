@@ -15,9 +15,9 @@ import torch
 import numpy as np
 import logging
 
-def run(fold):
+def run(fold, modelclass):
     # loading and setting up model, optimizer
-    model = TweetModel(Config.roberta_config)
+    model = modelclass(Config.roberta_config)
     param_optimizer = list(model.named_parameters())
     no_decay = ["bias", "LayerNorm.bias", "LayerNorm.weight"]
     optimizer_parameters = [
@@ -90,7 +90,7 @@ def run(fold):
         else:
             print("Jaccard didn't improve...")
             patience += 1
-            if patience == 2:
+            if patience == 3:
                 print(f"Jaccard didn't improve for 2 iterations, breaking after {epoch+1} epochs")
                 break
 
@@ -111,10 +111,10 @@ if __name__ == "__main__":
     
     for fold in range(1, Config.nfolds+1):
         print("-"*20)
-        print(f"Running fold = {fold}")
+        print(f"Running fold = {fold}/{Config.nfolds}")
         print("-"*20)
 
-        loss, jaccard = run(fold)
+        loss, jaccard = run(fold, modelclass=TweetModel2)
         cv_loss += [loss]
         cv_jaccard += [jaccard]
 
