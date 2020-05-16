@@ -49,7 +49,7 @@ def run(fold, modelclass):
     num_train_steps = int(len(train) / Config.batch_size * Config.num_epochs)
     scheduler = get_linear_schedule_with_warmup(
         optimizer, 
-        num_warmup_steps=0, 
+        num_warmup_steps=100, 
         num_training_steps=num_train_steps
     )
 
@@ -94,7 +94,7 @@ def run(fold, modelclass):
                 print(f"Jaccard didn't improve for 2 iterations, breaking after {epoch+1} epochs")
                 break
 
-    return valid_loss, valid_jaccard
+    return valid_loss, valid_jaccard_best
 
 if __name__ == "__main__":
     torch.manual_seed(0)

@@ -94,7 +94,6 @@ def infer_model(modelrun, modelclass, inferdata):
     token_start_pred = start_indices[:, 0]
     token_end_pred = end_indices[:, 0]
 
-
     # token_start_values = []
     # token_start_pred = []
     # token_end_values = []
