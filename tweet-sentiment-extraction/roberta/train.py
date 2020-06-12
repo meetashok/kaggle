@@ -114,7 +114,7 @@ if __name__ == "__main__":
         print(f"Running fold = {fold}/{Config.nfolds}")
         print("-"*20)
 
-        loss, jaccard = run(fold, modelclass=TweetModel2)
+        loss, jaccard = run(fold, modelclass=TweetModel)
         cv_loss += [loss]
         cv_jaccard += [jaccard]
 

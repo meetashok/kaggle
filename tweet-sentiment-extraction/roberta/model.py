@@ -24,7 +24,7 @@ class TweetModel(nn.Module):
     def __init__(self, config):
         super(TweetModel, self).__init__()
         print("Importing model...")
-        self.roberta = transformers.RobertaModel.from_pretrained("roberta-base", config=config)
+        self.roberta = transformers.RobertaModel.from_pretrained("roberta-large", config=config)
         self.dropout = nn.Dropout(0.5)
         self.linear = nn.Linear(config.hidden_size*2, 2)
         nn.init.normal_(self.linear.weight, std=0.02)
